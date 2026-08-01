@@ -48,21 +48,10 @@ public class UILine : MaskableGraphic
 
             Vector2 normal = new Vector2(-dir.y, dir.x) * halfThickness;
 
-            UIVertex v0 = UIVertex.simpleVert;
-            v0.color = color;
-            v0.position = start + normal;
-
-            UIVertex v1 = UIVertex.simpleVert;
-            v1.color = color;
-            v1.position = start - normal;
-
-            UIVertex v2 = UIVertex.simpleVert;
-            v2.color = color;
-            v2.position = end - normal;
-
-            UIVertex v3 = UIVertex.simpleVert;
-            v3.color = color;
-            v3.position = end + normal;
+            UIVertex v0 = CreateVertex(start + normal);
+            UIVertex v1 = CreateVertex(start - normal);
+            UIVertex v2 = CreateVertex(end - normal);
+            UIVertex v3 = CreateVertex(end + normal);
 
             vh.AddVert(v0);
             vh.AddVert(v1);
@@ -87,20 +76,14 @@ public class UILine : MaskableGraphic
         int segments = 10;
         int centerIndex = vh.currentVertCount;
 
-        UIVertex cVert = UIVertex.simpleVert;
-        cVert.color = color;
-        cVert.position = center;
-        vh.AddVert(cVert);
+        vh.AddVert(CreateVertex(center));
 
         for (int i = 0; i < segments; i++)
         {
             float angle = (i / (float)segments) * Mathf.PI * 2f;
             Vector2 pos = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
 
-            UIVertex vert = UIVertex.simpleVert;
-            vert.color = color;
-            vert.position = pos;
-            vh.AddVert(vert);
+            vh.AddVert(CreateVertex(pos));
         }
 
         for (int i = 0; i < segments; i++)
@@ -110,5 +93,14 @@ public class UILine : MaskableGraphic
         }
 
         return vh.currentVertCount;
+    }
+
+    private UIVertex CreateVertex(Vector2 position)
+    {
+        UIVertex vertex = UIVertex.simpleVert;
+        vertex.color = color;
+        vertex.position = position;
+
+        return vertex;
     }
 }

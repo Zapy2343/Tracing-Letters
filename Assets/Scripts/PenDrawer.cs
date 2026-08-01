@@ -24,6 +24,10 @@ public class PenDrawer : MonoBehaviour
     [Tooltip("The graphic/image to reveal (e.g., the colorful letter artwork). Auto-detected from maskParent if unassigned.")]
     [SerializeField] private Graphic revealTargetGraphic;
 
+    [Tooltip("Stencil channel used by this drawer. Keep this different from other revealable groups if multiple masks are visible near each other.")]
+    [Range(1, 255)]
+    [SerializeField] private int stencilReference = 17;
+
     [Header("Pen Tip Reference & Offset")]
     [Tooltip("Transform representing the pencil tip. If unassigned, uses this GameObject with the tipOffset.")]
     [SerializeField] private Transform penTip;
@@ -42,6 +46,31 @@ public class PenDrawer : MonoBehaviour
     [Header("Drawing Settings")]
     [Tooltip("Minimum distance cursor must move to add a new point to the stroke.")]
     [SerializeField] private float minDistanceBetweenPoints = 3f;
+
+    [Header("Letter Boundary Settings")]
+    [Tooltip("If true, strokes can only start and continue over non-transparent pixels of the active reveal letter.")]
+    [SerializeField] private bool restrictDrawingToLetterShape = true;
+
+    [Tooltip("Extra tolerance in UI units when checking whether the pen tip is inside the active letter.")]
+    [SerializeField] private float letterBoundaryTolerance = 6f;
+
+    [Tooltip("If true, a valid pen touch is shifted toward the center of the active stroke before drawing.")]
+    [SerializeField] private bool centerPenOnActiveStroke = true;
+
+    [Tooltip("Search radius used to find the active stroke center near the pen touch.")]
+    [Range(0.25f, 1.5f)]
+    [SerializeField] private float centerSearchRadiusMultiplier = 0.8f;
+
+    [Header("Sequence Tracing Settings")]
+    [Tooltip("Designer-authored sequence data. Each letter can have ordered stroke masks.")]
+    [SerializeField] private TracingSequenceAsset tracingSequence;
+
+    [Tooltip("If true and the active letter has stroke steps, only the current step mask can be traced.")]
+    [SerializeField] private bool useSequenceTracing = true;
+
+    [Header("Sequence Status (Read Only)")]
+    [SerializeField] private int currentLetterNumber = 1;
+    [SerializeField] private int currentSequenceStepIndex = 0;
 
     [Tooltip("Parent Canvas containing the drawing UI. Auto-detected if empty.")]
     [SerializeField] private Canvas parentCanvas;
@@ -89,11 +118,20 @@ public class PenDrawer : MonoBehaviour
     private float lastRightClickTime = -1f;
     private Material maskWriterMaterial;
     private Material revealMaterial;
+    private bool drawingLockedUntilRelease = false;
+    private readonly List<Material> runtimeStrokeMaterials = new List<Material>();
+    private readonly List<Image> sequenceStrokeLayers = new List<Image>();
+    private readonly List<Material> sequenceRevealMaterials = new List<Material>();
+    private Graphic hiddenFinalRevealTarget;
+    private bool hiddenFinalRevealTargetWasEnabled;
 
     // Sample points data for coverage calculation
     private List<Vector2> targetSamplePoints = new List<Vector2>();
     private List<Vector2> remainingUncoveredPoints = new List<Vector2>();
     private int totalSamplePointsCount = 0;
+    private LetterSequence activeLetterSequence;
+
+    public bool IsActivelyDrawing => currentUILine != null && !drawingLockedUntilRelease;
 
     private void Start()
     {
@@ -110,6 +148,7 @@ public class PenDrawer : MonoBehaviour
         }
 
         SetupStencilMaterials();
+        SetupSequenceStrokeLayers();
         RebuildSamplePoints();
     }
 
@@ -118,8 +157,33 @@ public class PenDrawer : MonoBehaviour
     /// </summary>
     public void SetRevealTargetGraphic(Graphic graphic)
     {
+        ReleaseSequenceStrokeLayers();
         revealTargetGraphic = graphic;
         SetupStencilMaterials();
+        SetupSequenceStrokeLayers();
+        ClearAllLines();
+    }
+
+    public void SetRevealTargetGraphic(Graphic graphic, int letterNumber)
+    {
+        ReleaseSequenceStrokeLayers();
+        currentLetterNumber = Mathf.Max(1, letterNumber);
+        currentSequenceStepIndex = 0;
+        activeLetterSequence = GetActiveLetterSequence();
+
+        revealTargetGraphic = graphic;
+        SetupStencilMaterials();
+        SetupSequenceStrokeLayers();
+        ClearAllLines();
+    }
+
+    public void SetCurrentLetterNumber(int letterNumber)
+    {
+        ReleaseSequenceStrokeLayers();
+        currentLetterNumber = Mathf.Max(1, letterNumber);
+        currentSequenceStepIndex = 0;
+        activeLetterSequence = GetActiveLetterSequence();
+        SetupSequenceStrokeLayers();
         ClearAllLines();
     }
 
@@ -142,7 +206,7 @@ public class PenDrawer : MonoBehaviour
         {
             if (customMaskWriterMaterial != null)
             {
-                maskWriterMaterial = customMaskWriterMaterial;
+                maskWriterMaterial = new Material(customMaskWriterMaterial);
             }
             else
             {
@@ -159,7 +223,7 @@ public class PenDrawer : MonoBehaviour
 
             if (customRevealMaterial != null)
             {
-                revealMaterial = customRevealMaterial;
+                revealMaterial = new Material(customRevealMaterial);
             }
             else
             {
@@ -173,6 +237,9 @@ public class PenDrawer : MonoBehaviour
                     Debug.LogWarning("[PenDrawer] UI/StencilReveal shader not found! Please assign it in the PenDrawer Inspector component.");
                 }
             }
+
+            ApplyStencilReference(maskWriterMaterial);
+            ApplyStencilReference(revealMaterial);
 
             if (revealTargetGraphic == null && maskParent != null)
             {
@@ -252,7 +319,7 @@ public class PenDrawer : MonoBehaviour
         }
 
         Image image = revealTargetGraphic as Image;
-        Sprite sprite = (image != null) ? image.sprite : null;
+        Sprite sprite = GetActiveCoverageSprite(image);
         if (sprite == null)
         {
             Debug.LogWarning($"[PenDrawer] '{revealTargetGraphic.name}' has no Sprite assigned! Coverage progress cannot be computed.");
@@ -263,7 +330,67 @@ public class PenDrawer : MonoBehaviour
         remainingUncoveredPoints = new List<Vector2>(targetSamplePoints);
         totalSamplePointsCount = targetSamplePoints.Count;
 
-        Debug.Log($"[PenDrawer] Rebuilt {totalSamplePointsCount} coverage sample points for '{revealTargetGraphic.name}'.");
+        Debug.Log($"[PenDrawer] Rebuilt {totalSamplePointsCount} coverage sample points for '{GetActiveTracingName()}'.");
+    }
+
+    private Sprite GetActiveCoverageSprite(Image revealImage)
+    {
+        TracingStrokeStep activeStep = GetActiveSequenceStep();
+        if (activeStep != null && activeStep.AllowedAreaMask != null)
+        {
+            return activeStep.AllowedAreaMask;
+        }
+
+        return revealImage != null ? revealImage.sprite : null;
+    }
+
+    private LetterSequence GetActiveLetterSequence()
+    {
+        if (!useSequenceTracing || tracingSequence == null)
+        {
+            return null;
+        }
+
+        LetterSequence sequence = tracingSequence.GetLetter(currentLetterNumber);
+        return sequence != null && sequence.HasSteps ? sequence : null;
+    }
+
+    private TracingStrokeStep GetActiveSequenceStep()
+    {
+        activeLetterSequence = GetActiveLetterSequence();
+        if (activeLetterSequence == null)
+        {
+            return null;
+        }
+
+        return activeLetterSequence.GetStep(currentSequenceStepIndex);
+    }
+
+    private bool HasNextSequenceStep()
+    {
+        return activeLetterSequence != null && currentSequenceStepIndex + 1 < activeLetterSequence.StrokeSteps.Count;
+    }
+
+    private float GetActiveCompletionThreshold()
+    {
+        TracingStrokeStep activeStep = GetActiveSequenceStep();
+        if (activeStep != null && activeStep.CompletionThresholdOverride > 0f)
+        {
+            return activeStep.CompletionThresholdOverride;
+        }
+
+        return completionThreshold;
+    }
+
+    private string GetActiveTracingName()
+    {
+        TracingStrokeStep activeStep = GetActiveSequenceStep();
+        if (activeStep != null)
+        {
+            return $"Letter {currentLetterNumber}, Step {currentSequenceStepIndex + 1}: {activeStep.StepName}";
+        }
+
+        return revealTargetGraphic != null ? revealTargetGraphic.name : "active letter";
     }
 
     /// <summary>
@@ -373,18 +500,375 @@ public class PenDrawer : MonoBehaviour
 
         Vector2 tipScreenPos = GetPenTipScreenPosition();
 
-        if (IsMouseJustPressed())
+        bool canDrawAtTip = CanDrawAtScreenPosition(tipScreenPos);
+        Vector2 drawingScreenPos = canDrawAtTip ? GetCenteredDrawingScreenPosition(tipScreenPos) : tipScreenPos;
+
+        if (IsMouseJustReleased())
         {
-            StartNewStroke(tipScreenPos);
+            drawingLockedUntilRelease = false;
+            FinishStroke();
+            return;
         }
-        else if (IsMouseHeldDown() && currentUILine != null)
+
+        if (IsMouseJustPressed() && !canDrawAtTip)
         {
-            UpdateCurrentStroke(tipScreenPos);
+            drawingLockedUntilRelease = true;
+            return;
         }
-        else if (IsMouseJustReleased())
+
+        if (IsMouseHeldDown() && drawingLockedUntilRelease)
+        {
+            return;
+        }
+
+        if (IsMouseJustPressed() && canDrawAtTip)
+        {
+            StartNewStroke(drawingScreenPos);
+        }
+        else if (IsMouseHeldDown() && currentUILine != null && canDrawAtTip)
+        {
+            UpdateCurrentStroke(drawingScreenPos);
+        }
+        else if (IsMouseHeldDown() && currentUILine == null && canDrawAtTip)
+        {
+            StartNewStroke(drawingScreenPos);
+        }
+        else if (IsMouseHeldDown() && currentUILine != null && !canDrawAtTip)
         {
             FinishStroke();
+            drawingLockedUntilRelease = true;
         }
+    }
+
+    private void ApplyStencilReference(Material material)
+    {
+        ApplyStencilReference(material, Mathf.Clamp(stencilReference, 1, 255));
+    }
+
+    private static void ApplyStencilReference(Material material, int reference)
+    {
+        if (material != null && material.HasProperty("_StencilRef"))
+        {
+            material.SetFloat("_StencilRef", reference);
+        }
+    }
+
+    private int GetSequenceStencilReference(int stepIndex)
+    {
+        int baseReference = Mathf.Clamp(stencilReference, 1, 255);
+        return ((baseReference - 1 + Mathf.Max(0, stepIndex)) % 255) + 1;
+    }
+
+    private int GetActiveStencilReference()
+    {
+        return GetActiveSequenceStep() != null
+            ? GetSequenceStencilReference(currentSequenceStepIndex)
+            : Mathf.Clamp(stencilReference, 1, 255);
+    }
+
+    private void SetupSequenceStrokeLayers()
+    {
+        if (sequenceStrokeLayers.Count > 0 || hiddenFinalRevealTarget != null)
+        {
+            ReleaseSequenceStrokeLayers();
+        }
+
+        activeLetterSequence = GetActiveLetterSequence();
+        if (drawingMode != DrawingMode.RevealMask || activeLetterSequence == null ||
+            revealTargetGraphic == null || revealMaterial == null || revealTargetGraphic.transform.parent == null)
+        {
+            return;
+        }
+
+        hiddenFinalRevealTarget = revealTargetGraphic;
+        hiddenFinalRevealTargetWasEnabled = revealTargetGraphic.enabled;
+        revealTargetGraphic.enabled = false;
+
+        Transform layerParent = revealTargetGraphic.transform;
+
+        for (int i = 0; i < activeLetterSequence.StrokeSteps.Count; i++)
+        {
+            TracingStrokeStep step = activeLetterSequence.GetStep(i);
+            if (step == null || step.AllowedAreaMask == null)
+            {
+                sequenceStrokeLayers.Add(null);
+                sequenceRevealMaterials.Add(null);
+                continue;
+            }
+
+            GameObject layerObject = new GameObject(
+                $"SequenceStrokeLayer_{i + 1}",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image)
+            );
+            layerObject.transform.SetParent(layerParent, false);
+
+            RectTransform layerRect = layerObject.GetComponent<RectTransform>();
+            layerRect.anchorMin = Vector2.zero;
+            layerRect.anchorMax = Vector2.one;
+            layerRect.pivot = new Vector2(0.5f, 0.5f);
+            layerRect.anchoredPosition = Vector2.zero;
+            layerRect.sizeDelta = Vector2.zero;
+            layerRect.localRotation = Quaternion.identity;
+            layerRect.localScale = Vector3.one;
+
+            Material layerMaterial = new Material(revealMaterial);
+            ApplyStencilReference(layerMaterial, GetSequenceStencilReference(i));
+            if (layerMaterial.HasProperty("_StencilComp"))
+            {
+                layerMaterial.SetFloat("_StencilComp", 3f);
+            }
+
+            Image layerImage = layerObject.GetComponent<Image>();
+            layerImage.sprite = step.AllowedAreaMask;
+            layerImage.type = Image.Type.Simple;
+            layerImage.preserveAspect = false;
+            layerImage.useSpriteMesh = false;
+            layerImage.color = Color.white;
+            layerImage.raycastTarget = false;
+            layerImage.maskable = false;
+            layerImage.material = layerMaterial;
+
+            layerObject.transform.SetSiblingIndex(i);
+            sequenceStrokeLayers.Add(layerImage);
+            sequenceRevealMaterials.Add(layerMaterial);
+        }
+    }
+
+    private void ReleaseSequenceStrokeLayers()
+    {
+        for (int i = 0; i < sequenceStrokeLayers.Count; i++)
+        {
+            if (sequenceStrokeLayers[i] != null)
+            {
+                Destroy(sequenceStrokeLayers[i].gameObject);
+            }
+        }
+        sequenceStrokeLayers.Clear();
+
+        for (int i = 0; i < sequenceRevealMaterials.Count; i++)
+        {
+            if (sequenceRevealMaterials[i] != null)
+            {
+                Destroy(sequenceRevealMaterials[i]);
+            }
+        }
+        sequenceRevealMaterials.Clear();
+
+        if (hiddenFinalRevealTarget != null)
+        {
+            hiddenFinalRevealTarget.enabled = hiddenFinalRevealTargetWasEnabled;
+        }
+        hiddenFinalRevealTarget = null;
+    }
+
+    private void ResetSequenceStrokeLayers()
+    {
+        for (int i = 0; i < sequenceRevealMaterials.Count; i++)
+        {
+            Material material = sequenceRevealMaterials[i];
+            if (material != null && material.HasProperty("_StencilComp"))
+            {
+                material.SetFloat("_StencilComp", 3f);
+            }
+        }
+
+        if (hiddenFinalRevealTarget != null)
+        {
+            hiddenFinalRevealTarget.enabled = false;
+        }
+    }
+
+    private Material CreateStrokeMaskMaterial()
+    {
+        if (maskWriterMaterial == null)
+        {
+            return null;
+        }
+
+        Material strokeMaterial = new Material(maskWriterMaterial);
+        ApplyStencilReference(strokeMaterial, GetActiveStencilReference());
+
+        runtimeStrokeMaterials.Add(strokeMaterial);
+        return strokeMaterial;
+    }
+
+    private int GetStencilWriterSiblingIndex(Transform targetParent)
+    {
+        int firstRevealIndex = int.MaxValue;
+        for (int i = 0; i < sequenceStrokeLayers.Count; i++)
+        {
+            Image layer = sequenceStrokeLayers[i];
+            if (layer != null && layer.transform.parent == targetParent)
+            {
+                firstRevealIndex = Mathf.Min(firstRevealIndex, layer.transform.GetSiblingIndex());
+            }
+        }
+
+        if (firstRevealIndex != int.MaxValue)
+        {
+            return firstRevealIndex;
+        }
+
+        if (revealTargetGraphic != null && revealTargetGraphic.transform.parent == targetParent)
+        {
+            return revealTargetGraphic.transform.GetSiblingIndex();
+        }
+
+        return 0;
+    }
+
+    private bool CanDrawAtScreenPosition(Vector2 screenPosition)
+    {
+        if (!restrictDrawingToLetterShape || drawingMode != DrawingMode.RevealMask)
+        {
+            return true;
+        }
+
+        if (revealTargetGraphic == null && maskParent != null)
+        {
+            revealTargetGraphic = maskParent.GetComponentInChildren<Graphic>();
+        }
+
+        if (revealTargetGraphic == null)
+        {
+            return true;
+        }
+
+        RectTransform targetRect = revealTargetGraphic.rectTransform;
+        Camera uiCamera = (parentCanvas != null && parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay) ? null : parentCanvas?.worldCamera;
+        if (uiCamera == null && parentCanvas != null && parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            uiCamera = mainCamera;
+        }
+
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(targetRect, screenPosition, uiCamera, out Vector2 localPoint))
+        {
+            return false;
+        }
+
+        return IsLocalPointInsideRevealSprite(localPoint, targetRect);
+    }
+
+    private Vector2 GetCenteredDrawingScreenPosition(Vector2 screenPosition)
+    {
+        if (!centerPenOnActiveStroke || revealTargetGraphic == null ||
+            targetSamplePoints == null || targetSamplePoints.Count == 0)
+        {
+            return screenPosition;
+        }
+
+        RectTransform targetRect = revealTargetGraphic.rectTransform;
+        Camera uiCamera = (parentCanvas != null && parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay)
+            ? null
+            : parentCanvas?.worldCamera;
+        if (uiCamera == null && parentCanvas != null && parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            uiCamera = mainCamera;
+        }
+
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                targetRect, screenPosition, uiCamera, out Vector2 touchedLocalPoint))
+        {
+            return screenPosition;
+        }
+
+        float searchRadius = Mathf.Max(
+            letterBoundaryTolerance * 2f,
+            penRadius * centerSearchRadiusMultiplier
+        );
+        float sqrSearchRadius = searchRadius * searchRadius;
+        Vector2 centeredLocalPoint = Vector2.zero;
+        int nearbyPointCount = 0;
+
+        for (int i = 0; i < targetSamplePoints.Count; i++)
+        {
+            Vector2 samplePoint = targetSamplePoints[i];
+            if ((samplePoint - touchedLocalPoint).sqrMagnitude <= sqrSearchRadius)
+            {
+                centeredLocalPoint += samplePoint;
+                nearbyPointCount++;
+            }
+        }
+
+        if (nearbyPointCount == 0)
+        {
+            return screenPosition;
+        }
+
+        centeredLocalPoint /= nearbyPointCount;
+        Vector3 centeredWorldPoint = targetRect.TransformPoint(centeredLocalPoint);
+        return RectTransformUtility.WorldToScreenPoint(uiCamera, centeredWorldPoint);
+    }
+
+    private bool IsLocalPointInsideRevealSprite(Vector2 localPoint, RectTransform targetRect)
+    {
+        Image image = revealTargetGraphic as Image;
+        return IsLocalPointInsideSprite(localPoint, targetRect, GetActiveCoverageSprite(image), useSampleFallback: true);
+    }
+
+    private bool IsLocalPointInsideSprite(Vector2 localPoint, RectTransform targetRect, Sprite sprite, bool useSampleFallback)
+    {
+        if (!targetRect.rect.Contains(localPoint))
+        {
+            return useSampleFallback && IsNearSamplePoint(localPoint);
+        }
+
+        if (sprite == null || sprite.texture == null)
+        {
+            return true;
+        }
+
+        Rect rect = targetRect.rect;
+        float u = Mathf.InverseLerp(rect.xMin, rect.xMax, localPoint.x);
+        float v = Mathf.InverseLerp(rect.yMin, rect.yMax, localPoint.y);
+
+        Rect spriteRect = sprite.rect;
+        int px = Mathf.Clamp(Mathf.FloorToInt(spriteRect.x + u * spriteRect.width), (int)spriteRect.xMin, (int)spriteRect.xMax - 1);
+        int py = Mathf.Clamp(Mathf.FloorToInt(spriteRect.y + v * spriteRect.height), (int)spriteRect.yMin, (int)spriteRect.yMax - 1);
+
+        try
+        {
+            if (sprite.texture.GetPixel(px, py).a > 0.08f)
+            {
+                return true;
+            }
+        }
+        catch (UnityException)
+        {
+            return !useSampleFallback || IsNearSamplePoint(localPoint);
+        }
+
+        return useSampleFallback && IsNearSamplePoint(localPoint);
+    }
+
+    private bool IsNearSamplePoint(Vector2 localPoint)
+    {
+        if (targetSamplePoints == null || targetSamplePoints.Count == 0)
+        {
+            return false;
+        }
+
+        float gridSpacing = 0f;
+        if (revealTargetGraphic != null && sampleGridResolution > 0)
+        {
+            Rect rect = revealTargetGraphic.rectTransform.rect;
+            gridSpacing = Mathf.Max(rect.width, rect.height) / sampleGridResolution;
+        }
+
+        float tolerance = Mathf.Max(letterBoundaryTolerance, gridSpacing * 1.5f, penRadius * 0.25f);
+        float sqrTolerance = tolerance * tolerance;
+
+        for (int i = 0; i < targetSamplePoints.Count; i++)
+        {
+            if ((targetSamplePoints[i] - localPoint).sqrMagnitude <= sqrTolerance)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void StartNewStroke(Vector2 screenPosition)
@@ -422,16 +906,8 @@ public class PenDrawer : MonoBehaviour
 
             if (drawingMode == DrawingMode.RevealMask)
             {
-                // Strokes MUST be drawn BEFORE revealTargetGraphic in the Canvas hierarchy so stencil buffer is populated first
-                if (revealTargetGraphic != null && revealTargetGraphic.transform.parent == targetParent)
-                {
-                    int targetIndex = revealTargetGraphic.transform.GetSiblingIndex();
-                    lineObj.transform.SetSiblingIndex(targetIndex);
-                }
-                else
-                {
-                    lineObj.transform.SetAsFirstSibling();
-                }
+                // Stencil writers must render before every sequence reveal layer.
+                lineObj.transform.SetSiblingIndex(GetStencilWriterSiblingIndex(targetParent));
             }
             else if (targetParent == parentCanvas.transform)
             {
@@ -449,7 +925,7 @@ public class PenDrawer : MonoBehaviour
         currentUILine = lineObj.AddComponent<UILine>();
         if (drawingMode == DrawingMode.RevealMask && maskWriterMaterial != null)
         {
-            currentUILine.material = maskWriterMaterial;
+            currentUILine.material = CreateStrokeMaskMaterial();
         }
         else
         {
@@ -541,12 +1017,14 @@ public class PenDrawer : MonoBehaviour
         int coveredCount = totalSamplePointsCount - remainingUncoveredPoints.Count;
         currentCoverageProgress = (float)coveredCount / totalSamplePointsCount;
 
-        if (isFinalRelease || currentCoverageProgress >= completionThreshold)
+        float activeCompletionThreshold = GetActiveCompletionThreshold();
+
+        if (isFinalRelease || currentCoverageProgress >= activeCompletionThreshold)
         {
             Debug.Log($"[PenDrawer] Progress: {currentCoverageProgress * 100:F1}% ({coveredCount}/{totalSamplePointsCount})");
         }
 
-        if (currentCoverageProgress >= completionThreshold)
+        if (currentCoverageProgress >= activeCompletionThreshold)
         {
             if (!completeOnlyOnMouseRelease || isFinalRelease)
             {
@@ -573,6 +1051,17 @@ public class PenDrawer : MonoBehaviour
     {
         if (isCompleted) return;
 
+        activeLetterSequence = GetActiveLetterSequence();
+        if (activeLetterSequence != null)
+        {
+            CompleteCurrentSequenceStrokeLayer();
+            if (HasNextSequenceStep())
+            {
+                AdvanceToNextSequenceStep();
+                return;
+            }
+        }
+
         isCompleted = true;
         currentCoverageProgress = 1f;
 
@@ -581,9 +1070,38 @@ public class PenDrawer : MonoBehaviour
             // Set Stencil Comp to Always (8) to display 100% of the graphic
             revealMaterial.SetFloat("_StencilComp", 8f);
         }
+        if (hiddenFinalRevealTarget != null)
+        {
+            hiddenFinalRevealTarget.enabled = true;
+        }
 
-        Debug.Log($"[PenDrawer] Mask reached {completionThreshold * 100:F0}% coverage! Auto-completed to 100%.");
+        Debug.Log($"[PenDrawer] '{GetActiveTracingName()}' reached {GetActiveCompletionThreshold() * 100:F0}% coverage! Auto-completed to 100%.");
         OnMaskCompleted?.Invoke();
+    }
+
+    private void CompleteCurrentSequenceStrokeLayer()
+    {
+        if (currentSequenceStepIndex < 0 || currentSequenceStepIndex >= sequenceRevealMaterials.Count)
+        {
+            return;
+        }
+
+        Material activeLayerMaterial = sequenceRevealMaterials[currentSequenceStepIndex];
+        if (activeLayerMaterial != null && activeLayerMaterial.HasProperty("_StencilComp"))
+        {
+            activeLayerMaterial.SetFloat("_StencilComp", 8f);
+        }
+    }
+
+    private void AdvanceToNextSequenceStep()
+    {
+        currentSequenceStepIndex++;
+        currentCoverageProgress = 0f;
+        isCompleted = false;
+        currentUILine = null;
+
+        RebuildSamplePoints();
+        Debug.Log($"[PenDrawer] Advanced to {GetActiveTracingName()}.");
     }
 
     private Vector2 GetPenTipScreenPosition()
@@ -594,9 +1112,19 @@ public class PenDrawer : MonoBehaviour
 
     public void ClearAllLines()
     {
+        currentSequenceStepIndex = 0;
+        activeLetterSequence = GetActiveLetterSequence();
+        drawingLockedUntilRelease = false;
+        ResetSequenceStrokeLayers();
+
         List<Transform> parentsToCheck = new List<Transform>();
         if (maskParent != null) parentsToCheck.Add(maskParent);
         if (linesParent != null) parentsToCheck.Add(linesParent);
+        if (revealTargetGraphic != null && revealTargetGraphic.transform.parent != null &&
+            !parentsToCheck.Contains(revealTargetGraphic.transform.parent))
+        {
+            parentsToCheck.Add(revealTargetGraphic.transform.parent);
+        }
         if (parentCanvas != null && !parentsToCheck.Contains(parentCanvas.transform)) parentsToCheck.Add(parentCanvas.transform);
 
         foreach (Transform parent in parentsToCheck)
@@ -610,6 +1138,15 @@ public class PenDrawer : MonoBehaviour
                 }
             }
         }
+
+        for (int i = 0; i < runtimeStrokeMaterials.Count; i++)
+        {
+            if (runtimeStrokeMaterials[i] != null)
+            {
+                Destroy(runtimeStrokeMaterials[i]);
+            }
+        }
+        runtimeStrokeMaterials.Clear();
 
         // Reset completion status and sample points for the new/cleared letter
         RebuildSamplePoints();

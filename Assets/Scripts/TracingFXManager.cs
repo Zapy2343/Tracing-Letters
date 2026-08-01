@@ -218,7 +218,7 @@ public class TracingFXManager : MonoBehaviour
     {
         if (!enableTracingTrail || fxContainer == null) return;
 
-        bool isDrawing = IsMouseHeldDown();
+        bool isDrawing = penDrawer != null ? penDrawer.IsActivelyDrawing : IsMouseHeldDown();
         if (!isDrawing) return;
 
         if (Time.time - lastTrailSpawnTime >= trailSpawnInterval)

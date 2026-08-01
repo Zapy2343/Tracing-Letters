@@ -313,10 +313,11 @@ public class LetterSwitcher : MonoBehaviour
         {
             if (designImage != null)
             {
-                penDrawer.SetRevealTargetGraphic(designImage);
+                penDrawer.SetRevealTargetGraphic(designImage, currentLetterNumber);
             }
             else
             {
+                penDrawer.SetCurrentLetterNumber(currentLetterNumber);
                 penDrawer.ClearAllLines();
             }
         }

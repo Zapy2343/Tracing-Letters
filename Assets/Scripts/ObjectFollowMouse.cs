@@ -34,9 +34,6 @@ public class ObjectFollowMouse : MonoBehaviour
     [Tooltip("Shadow distance when mouse button is held down.")]
     [SerializeField] private Vector2 pressedShadowDistance = new Vector2(-5f, -5f);
 
-    [Tooltip("Speed of transition between released and pressed shadow state (0 = instant).")]
-    [SerializeField] private float shadowTransitionSpeed = 20f;
-
     [Header("Camera Settings (For World Space Objects)")]
     [Tooltip("Camera used to calculate screen to world position. Defaults to Camera.main if left empty.")]
     [SerializeField] private Camera mainCamera;
@@ -57,6 +54,9 @@ public class ObjectFollowMouse : MonoBehaviour
     private Renderer targetRenderer;
     private Vector3 velocity3D = Vector3.zero;
     private Vector2 velocity2D = Vector2.zero;
+
+    [Range(20, 25)]
+    [SerializeField] private int shadowTransitionSpeed = 20;
 
     private void Start()
     {
@@ -145,8 +145,8 @@ public class ObjectFollowMouse : MonoBehaviour
         // --- WORLD SPACE MODE ---
         if (mainCamera == null) return;
 
-        float zDepth = is2D 
-            ? Mathf.Abs(mainCamera.transform.position.z - targetObject.transform.position.z) 
+        float zDepth = is2D
+            ? Mathf.Abs(mainCamera.transform.position.z - targetObject.transform.position.z)
             : distanceFromCamera;
 
         Vector3 mouseScreenPosition3D = new Vector3(mouseScreenPos.x, mouseScreenPos.y, zDepth);
@@ -166,9 +166,9 @@ public class ObjectFollowMouse : MonoBehaviour
         if (smoothSpeed > 0f)
         {
             targetObject.transform.position = Vector3.SmoothDamp(
-                targetObject.transform.position, 
-                targetWorldPosition, 
-                ref velocity3D, 
+                targetObject.transform.position,
+                targetWorldPosition,
+                ref velocity3D,
                 smoothSpeed
             );
         }
@@ -184,18 +184,10 @@ public class ObjectFollowMouse : MonoBehaviour
 
         Vector2 targetDist = isPressed ? pressedShadowDistance : defaultShadowDistance;
 
-        if (shadowTransitionSpeed > 0f)
-        {
-            targetShadow.effectDistance = Vector2.Lerp(
-                targetShadow.effectDistance,
-                targetDist,
-                Time.deltaTime * shadowTransitionSpeed
-            );
-        }
+        if (Vector2.Distance(targetShadow.effectDistance, targetDist) >= .5f)
+            targetShadow.effectDistance = Vector2.Lerp(targetShadow.effectDistance, targetDist, Time.deltaTime * shadowTransitionSpeed);
         else
-        {
             targetShadow.effectDistance = targetDist;
-        }
     }
 
     private Vector2 GetMouseScreenPosition()
