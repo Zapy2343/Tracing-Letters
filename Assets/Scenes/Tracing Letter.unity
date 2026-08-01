@@ -615,11 +615,20 @@ MonoBehaviour:
   drawingMode: 1
   maskParent: {fileID: 1428069223}
   revealTargetGraphic: {fileID: 0}
+  stencilReference: 17
   penTip: {fileID: 0}
   tipOffset: {x: 0, y: 0}
   penColor: {r: 0.08334541, g: 1, b: 0, a: 1}
   penRadius: 100
   minDistanceBetweenPoints: 2
+  restrictDrawingToLetterShape: 1
+  letterBoundaryTolerance: 6
+  centerPenOnActiveStroke: 1
+  centerSearchRadiusMultiplier: 0.8
+  tracingSequence: {fileID: 11400000, guid: 6290d7204d96f2741800f390f1e0ac62, type: 2}
+  useSequenceTracing: 1
+  currentLetterNumber: 1
+  currentSequenceStepIndex: 0
   parentCanvas: {fileID: 0}
   linesParent: {fileID: 0}
   autoCompleteOnHighCoverage: 1
@@ -656,11 +665,11 @@ MonoBehaviour:
   targetShadow: {fileID: 0}
   defaultShadowDistance: {x: -36, y: -45}
   pressedShadowDistance: {x: -5, y: -5}
-  shadowTransitionSpeed: 20
   mainCamera: {fileID: 0}
   is2D: 1
   distanceFromCamera: 10
   smoothSpeed: 0
+  shadowTransitionSpeed: 20
 --- !u!1 &1139957708
 GameObject:
   m_ObjectHideFlags: 0
@@ -929,11 +938,11 @@ MonoBehaviour:
   targetShadow: {fileID: 0}
   defaultShadowDistance: {x: -36, y: -45}
   pressedShadowDistance: {x: -5, y: -5}
-  shadowTransitionSpeed: 20
   mainCamera: {fileID: 330585545}
   is2D: 1
   distanceFromCamera: 10
   smoothSpeed: 0
+  shadowTransitionSpeed: 20
 --- !u!114 &1407733221
 MonoBehaviour:
   m_ObjectHideFlags: 0

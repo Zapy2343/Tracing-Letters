@@ -12,4 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee16cb19e98b4f799d635f0855bf0d30, type: 3}
   m_Name: ka
   m_EditorClassIdentifier: Assembly-CSharp::TracingSequenceAsset
-  letters: []
+  letters:
+  - letterNumber: 1
+    strokeSteps:
+    - stepName: 1
+      allowedAreaMask: {fileID: 21300000, guid: 25c792136f4e05f4abf9e004b6991345, type: 3}
+      completionThresholdOverride: 0.8
+    - stepName: 2
+      allowedAreaMask: {fileID: 21300000, guid: 4647bfc1c7f5e2d43bd4701c8cf60d0f, type: 3}
+      completionThresholdOverride: 0.8
+    - stepName: 3
+      allowedAreaMask: {fileID: 21300000, guid: 120dd3519e440da43a83056fdfa970db, type: 3}
+      completionThresholdOverride: 0.8
