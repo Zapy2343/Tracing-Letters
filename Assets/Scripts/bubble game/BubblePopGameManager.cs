@@ -81,6 +81,22 @@ public class BubblePopGameManager : MonoBehaviour
     [Tooltip("How much of the bubble size the inside image fills.")]
     [SerializeField] private float contentFillPercent = 0.84f;
 
+    [Header("Bubble Colors")]
+    [Tooltip("Randomly tint spawned bubble shells using the palette below.")]
+    [SerializeField] private bool useRandomBubbleColors = true;
+
+    [Tooltip("Colors randomly applied to the outer bubble shell. Alpha controls bubble opacity.")]
+    [SerializeField] private List<Color> bubbleShellColors = new List<Color>
+    {
+        new Color(0.62f, 0.87f, 1f, 0.86f),
+        new Color(0.78f, 0.68f, 1f, 0.86f),
+        new Color(1f, 0.70f, 0.82f, 0.86f),
+        new Color(0.69f, 0.94f, 0.70f, 0.86f),
+        new Color(1f, 0.86f, 0.52f, 0.86f),
+        new Color(0.66f, 0.95f, 0.91f, 0.86f),
+        new Color(1f, 0.74f, 0.60f, 0.86f)
+    };
+
     [Header("Motion")]
     [Tooltip("Random upward speed in canvas units per second.")]
     [SerializeField] private Vector2 riseSpeedRange = new Vector2(90f, 175f);
@@ -220,10 +236,27 @@ public class BubblePopGameManager : MonoBehaviour
             despawnPadding,
             HandleBubblePopped,
             ReturnBubbleToPool);
+        ApplyBubbleShellColor(bubble);
         bubble.SetContentFill(contentFillPercent);
 
         activeBubbles.Add(bubble);
         return bubble;
+    }
+
+    private void ApplyBubbleShellColor(BubblePopBubble bubble)
+    {
+        if (!useRandomBubbleColors || bubbleShellColors == null || bubbleShellColors.Count == 0 || bubble == null)
+        {
+            return;
+        }
+
+        Image shellImage = bubble.GetComponent<Image>();
+        if (shellImage == null)
+        {
+            return;
+        }
+
+        shellImage.color = bubbleShellColors[Random.Range(0, bubbleShellColors.Count)];
     }
 
     private void InitializePool()
@@ -555,5 +588,10 @@ public class BubblePopGameManager : MonoBehaviour
         riseSpeedRange.x = Mathf.Max(1f, riseSpeedRange.x);
         riseSpeedRange.y = Mathf.Max(1f, riseSpeedRange.y);
         contentFillPercent = Mathf.Clamp(contentFillPercent, 0.1f, 0.95f);
+
+        if (bubbleShellColors == null)
+        {
+            bubbleShellColors = new List<Color>();
+        }
     }
 }

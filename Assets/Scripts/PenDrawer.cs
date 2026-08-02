@@ -40,7 +40,7 @@ public class PenDrawer : MonoBehaviour
     [SerializeField] private Color penColor = Color.blue;
 
     [Tooltip("Radius / thickness of the pen stroke line in UI units.")]
-    [Range(1f, 100f)]
+    [Range(1f, 160f)]
     [SerializeField] private float penRadius = 15f;
 
     [Header("Drawing Settings")]
@@ -623,7 +623,7 @@ public class PenDrawer : MonoBehaviour
             Image layerImage = layerObject.GetComponent<Image>();
             layerImage.sprite = step.AllowedAreaMask;
             layerImage.type = Image.Type.Simple;
-            layerImage.preserveAspect = false;
+            layerImage.preserveAspect = true;
             layerImage.useSpriteMesh = false;
             layerImage.color = Color.white;
             layerImage.raycastTarget = false;
@@ -873,17 +873,6 @@ public class PenDrawer : MonoBehaviour
 
     private void StartNewStroke(Vector2 screenPosition)
     {
-        Camera uiCamera = (parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay) ? null : parentCanvas.worldCamera;
-        if (uiCamera == null && parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
-        {
-            uiCamera = mainCamera;
-        }
-
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRectTransform, screenPosition, uiCamera, out Vector2 localPoint))
-        {
-            return;
-        }
-
         GameObject lineObj = new GameObject("PenStroke", typeof(RectTransform));
         
         Transform targetParent = null;
@@ -922,6 +911,12 @@ public class PenDrawer : MonoBehaviour
         lineRect.sizeDelta = Vector2.zero;
         lineRect.anchoredPosition = Vector2.zero;
 
+        if (!TryGetStrokeLocalPoint(screenPosition, lineRect, out Vector2 localPoint))
+        {
+            Destroy(lineObj);
+            return;
+        }
+
         currentUILine = lineObj.AddComponent<UILine>();
         if (drawingMode == DrawingMode.RevealMask && maskWriterMaterial != null)
         {
@@ -941,13 +936,8 @@ public class PenDrawer : MonoBehaviour
 
     private void UpdateCurrentStroke(Vector2 screenPosition)
     {
-        Camera uiCamera = (parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay) ? null : parentCanvas.worldCamera;
-        if (uiCamera == null && parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
-        {
-            uiCamera = mainCamera;
-        }
-
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRectTransform, screenPosition, uiCamera, out Vector2 localPoint))
+        RectTransform strokeRect = currentUILine != null ? currentUILine.rectTransform : null;
+        if (TryGetStrokeLocalPoint(screenPosition, strokeRect, out Vector2 localPoint))
         {
             if (Vector2.Distance(lastLocalPoint, localPoint) >= minDistanceBetweenPoints)
             {
@@ -957,6 +947,24 @@ public class PenDrawer : MonoBehaviour
                 CheckCoverageProgress(isFinalRelease: false);
             }
         }
+    }
+
+    private bool TryGetStrokeLocalPoint(Vector2 screenPosition, RectTransform strokeRect, out Vector2 localPoint)
+    {
+        localPoint = Vector2.zero;
+
+        if (strokeRect == null)
+        {
+            return false;
+        }
+
+        Camera uiCamera = (parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay) ? null : parentCanvas.worldCamera;
+        if (uiCamera == null && parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            uiCamera = mainCamera;
+        }
+
+        return RectTransformUtility.ScreenPointToLocalPointInRectangle(strokeRect, screenPosition, uiCamera, out localPoint);
     }
 
     private void FinishStroke()
@@ -976,24 +984,24 @@ public class PenDrawer : MonoBehaviour
         List<Vector2> linePoints = currentUILine.points;
         float hitRadius = penRadius * hitRadiusRatio;
 
-        bool hasTarget = revealTargetGraphic != null && canvasRectTransform != null;
+        RectTransform strokeRect = currentUILine.rectTransform;
+        bool hasTarget = revealTargetGraphic != null && strokeRect != null;
 
         for (int i = remainingUncoveredPoints.Count - 1; i >= 0; i--)
         {
             Vector2 samplePt = remainingUncoveredPoints[i];
             
-            // Transform samplePt from revealTargetGraphic local space -> world space -> canvasRectTransform local space
-            Vector2 canvasSpacePt = samplePt;
+            Vector2 strokeSpacePt = samplePt;
             if (hasTarget)
             {
                 Vector3 worldPt = revealTargetGraphic.rectTransform.TransformPoint(samplePt);
-                canvasSpacePt = canvasRectTransform.InverseTransformPoint(worldPt);
+                strokeSpacePt = strokeRect.InverseTransformPoint(worldPt);
             }
 
             bool covered = false;
             for (int p = 0; p < linePoints.Count - 1; p++)
             {
-                if (IsPointNearSegment(canvasSpacePt, linePoints[p], linePoints[p + 1], hitRadius))
+                if (IsPointNearSegment(strokeSpacePt, linePoints[p], linePoints[p + 1], hitRadius))
                 {
                     covered = true;
                     break;
@@ -1002,7 +1010,7 @@ public class PenDrawer : MonoBehaviour
 
             if (!covered && linePoints.Count == 1)
             {
-                if (Vector2.Distance(canvasSpacePt, linePoints[0]) <= hitRadius)
+                if (Vector2.Distance(strokeSpacePt, linePoints[0]) <= hitRadius)
                 {
                     covered = true;
                 }
