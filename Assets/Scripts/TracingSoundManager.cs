@@ -65,6 +65,8 @@ public class TracingSoundManager : MonoBehaviour
 
     private void OnEnable()
     {
+        GlobalSoundManager.OnSettingsChanged += HandleGlobalSoundSettingsChanged;
+
         if (penDrawer != null)
         {
             penDrawer.OnStrokeStepCompleted.AddListener(PlayStrokeStepComplete);
@@ -74,6 +76,8 @@ public class TracingSoundManager : MonoBehaviour
 
     private void OnDisable()
     {
+        GlobalSoundManager.OnSettingsChanged -= HandleGlobalSoundSettingsChanged;
+
         if (penDrawer != null)
         {
             penDrawer.OnStrokeStepCompleted.RemoveListener(PlayStrokeStepComplete);
@@ -130,8 +134,14 @@ public class TracingSoundManager : MonoBehaviour
             return;
         }
 
+        if (GlobalSoundManager.Instance != null && !GlobalSoundManager.Instance.SoundEnabled)
+        {
+            StopTracingLoop();
+            return;
+        }
+
         tracingLoopSource.clip = tracingLoopClip;
-        tracingLoopSource.volume = tracingLoopVolume;
+        tracingLoopSource.volume = GetGlobalSfxVolumeScale() * tracingLoopVolume;
 
         if (!tracingLoopSource.isPlaying)
         {
@@ -143,7 +153,7 @@ public class TracingSoundManager : MonoBehaviour
     {
         if (tracingLoopSource != null && tracingLoopSource.isPlaying)
         {
-            tracingLoopSource.Stop();
+            //tracingLoopSource.Stop();
         }
     }
 
@@ -154,6 +164,31 @@ public class TracingSoundManager : MonoBehaviour
             return;
         }
 
+        if (GlobalSoundManager.Instance != null)
+        {
+            GlobalSoundManager.Instance.PlaySfx(sfxSource, clip, sfxVolume);
+            return;
+        }
+
         sfxSource.PlayOneShot(clip, sfxVolume);
+    }
+
+    private float GetGlobalSfxVolumeScale()
+    {
+        return GlobalSoundManager.Instance != null ? GlobalSoundManager.Instance.SoundVolume : 1f;
+    }
+
+    private void HandleGlobalSoundSettingsChanged()
+    {
+        if (GlobalSoundManager.Instance != null && !GlobalSoundManager.Instance.SoundEnabled)
+        {
+            StopTracingLoop();
+            return;
+        }
+
+        if (tracingLoopSource != null)
+        {
+            tracingLoopSource.volume = GetGlobalSfxVolumeScale() * tracingLoopVolume;
+        }
     }
 }

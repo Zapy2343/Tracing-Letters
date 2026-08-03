@@ -119,6 +119,58 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &298970034
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 298970036}
+  - component: {fileID: 298970035}
+  m_Layer: 0
+  m_Name: Sound Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &298970035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 298970034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f104dba1fc10c2c44b70abe47e45bb68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GlobalSoundManager
+  musicSource: {fileID: 1329518002}
+  sfxSource: {fileID: 1329518002}
+  defaultMusicClip: {fileID: 8300000, guid: 2614179291c867d43a8bfcdc09952cc4, type: 3}
+  playMusicOnStart: 1
+  defaultSoundEnabled: 1
+  defaultMusicEnabled: 1
+  defaultSoundVolume: 1
+  defaultMusicVolume: 0.6
+--- !u!4 &298970036
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 298970034}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1682.278, y: 856.538, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -578,6 +630,7 @@ MonoBehaviour:
   isCompleted: 0
   clearOnDoubleRightClick: 1
   doubleClickThreshold: 0.3
+  drawingLockedAfterCompletion: 0
   maskWriterShader: {fileID: 4800000, guid: d3cdb5f0d3f4a4e4c97064b76b532b0c, type: 3}
   revealShader: {fileID: 4800000, guid: 315b0c78816d4214daf9382ad3e6e3c5, type: 3}
   customMaskWriterMaterial: {fileID: 0}
@@ -618,7 +671,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TracingBubbleChoiceGame
   penDrawer: {fileID: 1052640283}
-  soundManager: {fileID: 0}
+  soundManager: {fileID: 1329518003}
   showOnLetterCompleted: 1
   targetCanvas: {fileID: 0}
   choiceArea: {fileID: 0}
@@ -973,6 +1026,158 @@ MonoBehaviour:
   - {r: 1, g: 0.5, b: 0.15, a: 1}
   additiveShader: {fileID: 4800000, guid: a35509af433a99149ac62d52b31d9bf1, type: 3}
   customAdditiveMaterial: {fileID: 0}
+--- !u!1 &1329518001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1329518004}
+  - component: {fileID: 1329518003}
+  - component: {fileID: 1329518002}
+  m_Layer: 0
+  m_Name: Tracing Sound Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &1329518002
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1329518001}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &1329518003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1329518001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f255799de3de3244ac755183d278da9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TracingSoundManager
+  penDrawer: {fileID: 1052640283}
+  sfxSource: {fileID: 1329518002}
+  tracingLoopSource: {fileID: 1329518002}
+  tracingLoopClip: {fileID: 0}
+  strokeStepCompleteClip: {fileID: 8300000, guid: afd8a1051b5d0864daa65ed82312a031, type: 3}
+  letterCompleteClip: {fileID: 8300000, guid: 52ae14f8947c6c3489c6c121211e975a, type: 3}
+  correctBubbleClip: {fileID: 8300000, guid: f5876a08db862004baeb4aeed1881c1d, type: 3}
+  wrongBubbleClip: {fileID: 8300000, guid: 8bd8e0d57c651c24ba24c4b1eb98a705, type: 3}
+  sfxVolume: 1
+  tracingLoopVolume: 0.35
+--- !u!4 &1329518004
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1329518001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1682.278, y: 856.538, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1407733219
 GameObject:
   m_ObjectHideFlags: 0
@@ -1118,8 +1323,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LetterSwitcher
   designLetterObject: {fileID: 1139957708}
   dottedLetterObject: {fileID: 1460249309}
-  penDrawer: {fileID: 0}
-  fxManager: {fileID: 0}
+  penDrawer: {fileID: 1052640283}
+  fxManager: {fileID: 1185087920}
   designLetterSprites:
   - {fileID: 21300000, guid: 6dbd3b2e059231e42af1ba1e9a4567fb, type: 3}
   - {fileID: 21300000, guid: 16a9c126a7e0d7543b40d95433d6b0ca, type: 3}
@@ -1410,3 +1615,5 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 1407733224}
   - {fileID: 2117393345}
+  - {fileID: 1329518004}
+  - {fileID: 298970036}
