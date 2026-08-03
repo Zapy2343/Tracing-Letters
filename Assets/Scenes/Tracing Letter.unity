@@ -544,14 +544,14 @@ MonoBehaviour:
   penTip: {fileID: 0}
   tipOffset: {x: 0, y: 0}
   penColor: {r: 0.08334541, g: 1, b: 0, a: 1}
-  penRadius: 130
+  penRadius: 100
   minDistanceBetweenPoints: 2
   restrictDrawingToLetterShape: 1
   letterBoundaryTolerance: 6
   centerPenOnActiveStroke: 1
   centerSearchRadiusMultiplier: 0.8
   tracingSequence: {fileID: 11400000, guid: 6290d7204d96f2741800f390f1e0ac62, type: 2}
-  useSequenceTracing: 1
+  useSequenceTracing: 0
   currentLetterNumber: 1
   currentSequenceStepIndex: 0
   parentCanvas: {fileID: 0}
@@ -797,11 +797,11 @@ MonoBehaviour:
   letterSwitcher: {fileID: 1407733225}
   designLetterTransform: {fileID: 1139957711}
   dottedLetterTransform: {fileID: 1460249310}
-  sparkSprite: {fileID: 21300000, guid: 59989c1d254131a49bec5550dc2b207c, type: 3}
-  glowSprite: {fileID: 21300000, guid: a9a2cedcbd6d71a42a60368bcf012df2, type: 3}
-  starburstSprite: {fileID: 21300000, guid: b9a42141f3744794d9fbf7f036175d15, type: 3}
-  lightRaysSprite: {fileID: 21300000, guid: 14da6e43702281345b8d0ce8a1962436, type: 3}
-  sheenSprite: {fileID: 21300000, guid: 333630d6ecb33ef43b91a748ce79f5cb, type: 3}
+  sparkSprite: {fileID: 21300000, guid: 80972262528968346881fabcb24892c4, type: 3}
+  glowSprite: {fileID: 21300000, guid: dca8d6427da1bc84aa7db3412f925a3a, type: 3}
+  starburstSprite: {fileID: 21300000, guid: 80972262528968346881fabcb24892c4, type: 3}
+  lightRaysSprite: {fileID: 21300000, guid: d217548be81f28945a694438b04b6b46, type: 3}
+  sheenSprite: {fileID: 21300000, guid: 1718ce6fea96c15468d7d55a30a4c547, type: 3}
   enableTracingTrail: 1
   trailSpawnInterval: 0.035
   trailParticleSizeRange: {x: 25, y: 50}
