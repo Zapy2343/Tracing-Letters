@@ -558,7 +558,9 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         for (int i = list.Count - 1; i > 0; i--)
         {
             int swapIndex = Random.Range(0, i + 1);
-            (list[i], list[swapIndex]) = (list[swapIndex], list[i]);
+            T temp = list[i];
+            list[i] = list[swapIndex];
+            list[swapIndex] = temp;
         }
     }
 

@@ -552,7 +552,7 @@ MonoBehaviour:
   centerPenOnActiveStroke: 1
   centerSearchRadiusMultiplier: 0.8
   tracingSequence: {fileID: 11400000, guid: 6290d7204d96f2741800f390f1e0ac62, type: 2}
-  useSequenceTracing: 0
+  useSequenceTracing: 1
   currentLetterNumber: 1
   currentSequenceStepIndex: 0
   parentCanvas: {fileID: 0}
@@ -627,7 +627,7 @@ MonoBehaviour:
   poppedBubbleSprite: {fileID: 0}
   popAnimatorController: {fileID: 9100000, guid: 9fd69bba6046fe74aa3f27982f2523c7, type: 2}
   contentFillPercent: 0.84
-  bubblesToRise: 7
+  bubblesToRise: 5
   bubbleSizeRange: {x: 200, y: 250}
   spawnBottomOffset: 40
   spawnStaggerOffsetRange: {x: 0, y: 180}
@@ -635,8 +635,8 @@ MonoBehaviour:
   minimumSpawnSpacing: 180
   spawnPositionAttempts: 16
   riseSpeedRange: {x: 95, y: 155}
-  wiggleAmplitude: 24
-  wiggleFrequency: 1.8
+  wiggleAmplitude: 1
+  wiggleFrequency: 1
   despawnPadding: 80
   bubbleOptionImages:
   - {fileID: 21300000, guid: 99ef623cd29d2964cb56eabbdadfa608, type: 3}

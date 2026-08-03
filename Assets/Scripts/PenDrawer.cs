@@ -128,6 +128,7 @@ public class PenDrawer : MonoBehaviour
     private Material maskWriterMaterial;
     private Material revealMaterial;
     private bool drawingLockedUntilRelease = false;
+    [SerializeField] private bool drawingLockedAfterCompletion = false;
     private readonly List<Material> runtimeStrokeMaterials = new List<Material>();
     private readonly List<Image> sequenceStrokeLayers = new List<Image>();
     private readonly List<Material> sequenceRevealMaterials = new List<Material>();
@@ -140,7 +141,8 @@ public class PenDrawer : MonoBehaviour
     private int totalSamplePointsCount = 0;
     private LetterSequence activeLetterSequence;
 
-    public bool IsActivelyDrawing => currentUILine != null && !drawingLockedUntilRelease;
+    public bool IsActivelyDrawing => currentUILine != null && !drawingLockedUntilRelease && !drawingLockedAfterCompletion;
+    public bool IsDrawingLockedAfterCompletion => drawingLockedAfterCompletion;
     public int CurrentLetterNumber => currentLetterNumber;
     public int CurrentSequenceStepIndex => currentSequenceStepIndex;
     public LetterSequence CurrentLetterSequence => GetActiveLetterSequence();
@@ -497,6 +499,15 @@ public class PenDrawer : MonoBehaviour
 
     private void Update()
     {
+        if (drawingLockedAfterCompletion)
+        {
+            if (currentUILine != null)
+            {
+                FinishStroke();
+            }
+            return;
+        }
+
         // Handle double right-click to clear canvas
         if (clearOnDoubleRightClick && IsRightMouseJustPressed())
         {
@@ -1092,6 +1103,8 @@ public class PenDrawer : MonoBehaviour
         }
 
         isCompleted = true;
+        drawingLockedAfterCompletion = true;
+        drawingLockedUntilRelease = true;
         currentCoverageProgress = 1f;
 
         if (revealMaterial != null)
@@ -1143,6 +1156,7 @@ public class PenDrawer : MonoBehaviour
     {
         currentSequenceStepIndex = 0;
         activeLetterSequence = GetActiveLetterSequence();
+        drawingLockedAfterCompletion = false;
         drawingLockedUntilRelease = false;
         ResetSequenceStrokeLayers();
 
