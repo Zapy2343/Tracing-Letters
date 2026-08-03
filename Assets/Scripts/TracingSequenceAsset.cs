@@ -26,10 +26,14 @@ public class LetterSequence
     [Tooltip("1-based letter number. This should match the Design/Dotted Letters sprite number.")]
     [SerializeField] private int letterNumber = 1;
 
+    [Tooltip("Default correct image used by bubble-choice quizzes after this letter is traced.")]
+    [SerializeField] private Sprite bubbleCorrectImage;
+
     [Tooltip("Ordered stroke steps for this letter. Designers can add 3, 4, 5, or however many this letter needs.")]
     [SerializeField] private List<TracingStrokeStep> strokeSteps = new List<TracingStrokeStep>();
 
     public int LetterNumber => letterNumber;
+    public Sprite BubbleCorrectImage => bubbleCorrectImage;
     public IReadOnlyList<TracingStrokeStep> StrokeSteps => strokeSteps;
 
     public bool HasSteps => strokeSteps != null && strokeSteps.Count > 0;

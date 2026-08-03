@@ -99,6 +99,15 @@ public class PenDrawer : MonoBehaviour
     [Tooltip("Event triggered when the letter mask reaches the auto-completion threshold.")]
     public UnityEvent OnMaskCompleted;
 
+    [Tooltip("Event triggered when one sequence stroke step is completed and the drawer advances to the next step.")]
+    public UnityEvent OnStrokeStepCompleted;
+
+    [Tooltip("Event triggered when the user starts a valid tracing stroke.")]
+    public UnityEvent OnTraceStarted;
+
+    [Tooltip("Event triggered when the user stops a tracing stroke.")]
+    public UnityEvent OnTraceStopped;
+
     [Header("Coverage Progress (Read Only)")]
     [Range(0f, 1f)]
     [SerializeField] private float currentCoverageProgress = 0f;
@@ -132,6 +141,10 @@ public class PenDrawer : MonoBehaviour
     private LetterSequence activeLetterSequence;
 
     public bool IsActivelyDrawing => currentUILine != null && !drawingLockedUntilRelease;
+    public int CurrentLetterNumber => currentLetterNumber;
+    public int CurrentSequenceStepIndex => currentSequenceStepIndex;
+    public LetterSequence CurrentLetterSequence => GetActiveLetterSequence();
+    public TracingStrokeStep CurrentSequenceStep => GetActiveSequenceStep();
 
     private void Start()
     {
@@ -930,6 +943,7 @@ public class PenDrawer : MonoBehaviour
 
         lastLocalPoint = localPoint;
         currentUILine.AddPoint(localPoint);
+        OnTraceStarted?.Invoke();
 
         CheckCoverageProgress(isFinalRelease: false);
     }
@@ -969,8 +983,14 @@ public class PenDrawer : MonoBehaviour
 
     private void FinishStroke()
     {
+        bool hadActiveStroke = currentUILine != null;
         CheckCoverageProgress(isFinalRelease: true);
         currentUILine = null;
+
+        if (hadActiveStroke)
+        {
+            OnTraceStopped?.Invoke();
+        }
     }
 
     /// <summary>
@@ -1065,6 +1085,7 @@ public class PenDrawer : MonoBehaviour
             CompleteCurrentSequenceStrokeLayer();
             if (HasNextSequenceStep())
             {
+                OnStrokeStepCompleted?.Invoke();
                 AdvanceToNextSequenceStep();
                 return;
             }

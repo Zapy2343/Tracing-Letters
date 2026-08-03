@@ -41,6 +41,8 @@ public class BubblePopBubble : MonoBehaviour
     private Animator popAnimator;
     private Action<BubblePopBubble> poppedCallback;
     private Action<BubblePopBubble> releasedCallback;
+    private Func<BubblePopBubble, bool> canPopCallback;
+    private Action<BubblePopBubble> rejectedPopCallback;
     private Coroutine popRoutine;
     private Color bubbleBaseColor = Color.white;
     private Color contentBaseColor = Color.white;
@@ -62,6 +64,7 @@ public class BubblePopBubble : MonoBehaviour
 
     public void SetContentFill(float fillPercent)
     {
+        ResolveImageReferences();
         if (contentImage == null) return;
 
         RectTransform contentRect = contentImage.GetComponent<RectTransform>();
@@ -85,10 +88,7 @@ public class BubblePopBubble : MonoBehaviour
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
 
-        if (bubbleImage == null)
-        {
-            bubbleImage = GetComponent<Image>();
-        }
+        ResolveImageReferences();
 
         if (popButton == null)
         {
@@ -151,8 +151,12 @@ public class BubblePopBubble : MonoBehaviour
         float frequency,
         float padding,
         Action<BubblePopBubble> onPopped,
-        Action<BubblePopBubble> onReleased)
+        Action<BubblePopBubble> onReleased,
+        Func<BubblePopBubble, bool> canPop = null,
+        Action<BubblePopBubble> onRejectedPop = null)
     {
+        ResolveImageReferences();
+
         if (popRoutine != null)
         {
             StopCoroutine(popRoutine);
@@ -182,6 +186,8 @@ public class BubblePopBubble : MonoBehaviour
         despawnPadding = padding;
         poppedCallback = onPopped;
         releasedCallback = onReleased;
+        canPopCallback = canPop;
+        rejectedPopCallback = onRejectedPop;
         wiggleSeed = UnityEngine.Random.Range(0f, 100f);
         popped = false;
 
@@ -195,10 +201,12 @@ public class BubblePopBubble : MonoBehaviour
         if (contentImage != null)
         {
             contentImage.sprite = contentSprite;
+            contentImage.gameObject.SetActive(contentSprite != null);
             contentImage.enabled = contentSprite != null;
             contentImage.raycastTarget = false;
             contentImage.preserveAspect = true;
-            contentImage.color = contentBaseColor;
+            contentImage.color = contentBaseColor.a > 0f ? contentBaseColor : Color.white;
+            contentImage.transform.SetAsLastSibling();
         }
 
         if (popButton != null)
@@ -220,9 +228,55 @@ public class BubblePopBubble : MonoBehaviour
         rectTransform.localScale = Vector3.one;
     }
 
+    private void ResolveImageReferences()
+    {
+        if (bubbleImage == null)
+        {
+            bubbleImage = GetComponent<Image>();
+        }
+
+        if (contentImage == null)
+        {
+            Image[] images = GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < images.Length; i++)
+            {
+                if (images[i] != null && images[i] != bubbleImage)
+                {
+                    contentImage = images[i];
+                    break;
+                }
+            }
+        }
+
+        if (contentImage == null)
+        {
+            GameObject contentObject = new GameObject("Bubble Image", typeof(RectTransform), typeof(Image));
+            contentObject.transform.SetParent(transform, false);
+
+            RectTransform contentRect = contentObject.GetComponent<RectTransform>();
+            contentRect.anchorMin = new Vector2(0.08f, 0.08f);
+            contentRect.anchorMax = new Vector2(0.92f, 0.92f);
+            contentRect.pivot = new Vector2(0.5f, 0.5f);
+            contentRect.offsetMin = Vector2.zero;
+            contentRect.offsetMax = Vector2.zero;
+            contentRect.anchoredPosition = Vector2.zero;
+
+            contentImage = contentObject.GetComponent<Image>();
+            contentImage.preserveAspect = true;
+            contentImage.raycastTarget = false;
+            contentImage.color = Color.white;
+        }
+    }
+
     public void Pop()
     {
         if (popped) return;
+
+        if (canPopCallback != null && !canPopCallback(this))
+        {
+            rejectedPopCallback?.Invoke(this);
+            return;
+        }
 
         popped = true;
 
