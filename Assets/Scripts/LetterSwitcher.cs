@@ -11,6 +11,8 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class LetterSwitcher : MonoBehaviour
 {
+    private const string SelectedTracingLetterNumberKey = "ka_kha_selected_letter_number";
+
     [Header("UI / Game Object References")]
     [Tooltip("Reference to the GameObject or UI Image for the Design Letter.")]
     [SerializeField] private GameObject designLetterObject;
@@ -77,8 +79,9 @@ public class LetterSwitcher : MonoBehaviour
 #endif
         }
 
-        // Set initial letter (Letter 1) without transition effect on start
-        currentLetterNumber = 1;
+        // Set initial letter from the Ka/Kha menu selection without transition effect on start.
+        int savedLetterNumber = PlayerPrefs.GetInt(SelectedTracingLetterNumberKey, 1);
+        currentLetterNumber = Mathf.Clamp(savedLetterNumber, 1, Mathf.Max(1, GetTotalCount()));
         ApplyCurrentLetter();
     }
 

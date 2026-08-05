@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -11,6 +12,7 @@ public class TracingBubbleChoiceGame : MonoBehaviour
 {
     [Header("Tracing References")]
     [SerializeField] private PenDrawer penDrawer;
+    [SerializeField] private LetterSwitcher letterSwitcher;
     [SerializeField] private TracingSoundManager soundManager;
 
     [Tooltip("Show the quiz when the entire current letter is completed.")]
@@ -72,6 +74,11 @@ public class TracingBubbleChoiceGame : MonoBehaviour
     [Tooltip("All possible bubble images. The correct image comes from the active LetterSequence. Two incorrect bubbles are picked from this list by excluding the correct sprite.")]
     [SerializeField] private List<Sprite> bubbleOptionImages = new List<Sprite>();
 
+    [Header("Score & Progress")]
+    [SerializeField] private int scorePerCorrectBubble = 10;
+    [SerializeField] private bool advanceToNextLetterAfterCorrect = true;
+    [SerializeField] private float nextLetterDelay = 0.65f;
+
     [Header("Events")]
     [SerializeField] private UnityEvent onCorrectBubbleSelected;
     [SerializeField] private UnityEvent onWrongBubbleSelected;
@@ -114,6 +121,15 @@ public class TracingBubbleChoiceGame : MonoBehaviour
             soundManager = FindFirstObjectByType<TracingSoundManager>();
 #else
             soundManager = FindObjectOfType<TracingSoundManager>();
+#endif
+        }
+
+        if (letterSwitcher == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            letterSwitcher = FindFirstObjectByType<LetterSwitcher>();
+#else
+            letterSwitcher = FindObjectOfType<LetterSwitcher>();
 #endif
         }
 
@@ -398,14 +414,54 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         quizActive = false;
 
         soundManager?.PlayCorrectBubble();
+        RewardCurrentLetter();
         onCorrectBubbleSelected?.Invoke();
         RemoveOtherChoices(bubble);
+
+        if (advanceToNextLetterAfterCorrect)
+        {
+            StartCoroutine(AdvanceToNextLetterRoutine());
+        }
     }
 
     private void HandleWrongBubbleTapped(BubblePopBubble bubble)
     {
         soundManager?.PlayWrongBubble();
         onWrongBubbleSelected?.Invoke();
+    }
+
+    private void RewardCurrentLetter()
+    {
+        int currentLetterNumber = penDrawer != null ? penDrawer.CurrentLetterNumber : 1;
+        int totalLetters = letterSwitcher != null ? letterSwitcher.GetTotalCount() : Mathf.Max(1, currentLetterNumber + 1);
+        KaKhaTracingProgress.CompleteLetter(currentLetterNumber, scorePerCorrectBubble, totalLetters);
+    }
+
+    private IEnumerator AdvanceToNextLetterRoutine()
+    {
+        yield return new WaitForSecondsRealtime(Mathf.Max(0f, nextLetterDelay));
+
+        if (letterSwitcher == null)
+        {
+            yield break;
+        }
+
+        int totalLetters = letterSwitcher.GetTotalCount();
+        if (totalLetters <= 0)
+        {
+            yield break;
+        }
+
+        int currentLetterNumber = penDrawer != null ? penDrawer.CurrentLetterNumber : 1;
+        int nextLetterNumber = Mathf.Min(currentLetterNumber + 1, totalLetters);
+        if (nextLetterNumber == currentLetterNumber)
+        {
+            yield break;
+        }
+
+        PlayerPrefs.SetInt(KaKhaTracingProgress.SelectedTracingLetterNumberKey, nextLetterNumber);
+        PlayerPrefs.Save();
+        letterSwitcher.SetLetterByNumber(nextLetterNumber);
     }
 
     private void HandleBubbleReleased(BubblePopBubble bubble)

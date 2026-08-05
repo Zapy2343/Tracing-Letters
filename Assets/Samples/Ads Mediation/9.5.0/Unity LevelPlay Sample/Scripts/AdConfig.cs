@@ -7,44 +7,44 @@ public static class AdConfig
 
     static string GetAppKey()
     {
-        #if UNITY_ANDROID
-                return "277aadc25";
-        #elif UNITY_IPHONE
-                return "277ace1ed";
-        #else
-                return "277aadc25";
-        #endif
+#if UNITY_ANDROID
+        return "277aadc25";
+#elif UNITY_IPHONE
+        return "277ace1ed";
+#else
+        return "unexpected_platform";
+#endif
     }
 
     static string GetBannerAdUnitId()
     {
-        #if UNITY_ANDROID
-            return "4fpetq4lhe5lsw3e";
-        #elif UNITY_IPHONE
-            return "xc2bsuntn9ea734t";
-        #else
-            return "ygqdrzq6g8uhbtdp";
-        #endif
+#if UNITY_ANDROID
+        return "ygqdrzq6g8uhbtdp";
+#elif UNITY_IPHONE
+        return "auo2eimnq8gu2w41";
+#else
+        return "unexpected_platform";
+#endif
     }
     static string GetInterstitialAdUnitId()
     {
-        #if UNITY_ANDROID
-            return "h3xw38h9214adgxo";
-        #elif UNITY_IPHONE
-            return "obg6ohwts3y690ks";
-        #else
-            return "unexpected_platform";
-        #endif
+#if UNITY_ANDROID
+        return "b4e0ztfkrpg7kb62";
+#elif UNITY_IPHONE
+        return "x6zthp7f0zo0bq2l";
+#else
+        return "unexpected_platform";
+#endif
     }
 
     static string GetRewardedVideoAdUnitId()
     {
-        #if UNITY_ANDROID
-            return "syz3d8ekts22q0or";
-        #elif UNITY_IPHONE
-            return "l1quzz1xmmdhw5er";
-        #else
+#if UNITY_ANDROID
+        return "q4858abe66iws5ei";
+#elif UNITY_IPHONE
+            return "x1mms5xicq0zwar5";
+#else
             return "unexpected_platform";
-        #endif
+#endif
     }
 }

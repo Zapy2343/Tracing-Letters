@@ -9,19 +9,39 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee16cb19e98b4f799d635f0855bf0d30, type: 3}
-  m_Name: ka
-  m_EditorClassIdentifier: Assembly-CSharp::TracingSequenceAsset
-  letters:
-  - letterNumber: 1
+  m_Script: {fileID: 0}
+  m_Name: Letter_01
+  m_EditorClassIdentifier: Assembly-CSharp::TracingLetterAsset
+  letter:
+    letterNumber: 1
     bubbleCorrectImage: {fileID: 21300000, guid: 99ef623cd29d2964cb56eabbdadfa608, type: 3}
     strokeSteps:
     - stepName: 1
       allowedAreaMask: {fileID: 21300000, guid: 25c792136f4e05f4abf9e004b6991345, type: 3}
+      hintPathPoints:
+      - {x: 9.0929, y: 174.92589}
+      - {x: 9.141319, y: -156.38708}
+      hintPathResolution: 18
       completionThresholdOverride: 0.8
     - stepName: 2
       allowedAreaMask: {fileID: 21300000, guid: 4647bfc1c7f5e2d43bd4701c8cf60d0f, type: 3}
+      hintPathPoints:
+      - {x: -24.635048, y: 51.99968}
+      - {x: -107.24591, y: 55.23321}
+      - {x: -161.60667, y: -3.39326}
+      - {x: -137.66783, y: -79.28126}
+      - {x: -58.56003, y: -91.47731}
+      - {x: -1.1696168, y: -35.306133}
+      - {x: 48.735634, y: 28.446161}
+      - {x: 129.93973, y: 26.2777}
+      - {x: 171.81487, y: -41.506115}
+      - {x: 144.08557, y: -117.84827}
+      hintPathResolution: 48
       completionThresholdOverride: 0.8
     - stepName: 3
       allowedAreaMask: {fileID: 21300000, guid: 120dd3519e440da43a83056fdfa970db, type: 3}
+      hintPathPoints:
+      - {x: -197.45056, y: 181.86069}
+      - {x: 203.24263, y: 181.31769}
+      hintPathResolution: 18
       completionThresholdOverride: 0.8

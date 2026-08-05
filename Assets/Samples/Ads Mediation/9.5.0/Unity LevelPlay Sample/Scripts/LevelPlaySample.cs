@@ -45,7 +45,12 @@ public class LevelPlaySample : MonoBehaviour
         rewardedVideoAd.OnAdImpressionDataReady += RewardedVideoOnAdImpressionDataReadyEvent;
 
         // Create Banner object
-        bannerAd = new LevelPlayBannerAd(AdConfig.BannerAdUnitId);
+        var bannerConfig = new LevelPlayBannerAd.Config.Builder()
+            .SetSize(LevelPlayAdSize.BANNER)
+            .SetPosition(LevelPlayBannerPosition.TopCenter)
+            .SetRespectSafeArea(true)
+            .Build();
+        bannerAd = new LevelPlayBannerAd(AdConfig.BannerAdUnitId, bannerConfig);
 
         // Register to Banner events
         bannerAd.OnAdLoaded += BannerOnAdLoadedEvent;

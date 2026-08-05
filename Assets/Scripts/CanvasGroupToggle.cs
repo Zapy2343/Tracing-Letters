@@ -1,56 +1,87 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Toggles a CanvasGroup between visible/interactable and hidden/non-interactable states.
+/// Toggles CanvasGroups so only one listed group is visible at a time.
 /// </summary>
 [RequireComponent(typeof(CanvasGroup))]
 public class CanvasGroupToggle : MonoBehaviour
 {
-    [Tooltip("CanvasGroup to control. Uses the CanvasGroup on this object when left empty.")]
-    [SerializeField] private CanvasGroup canvasGroup;
+    private CanvasGroup canvasGroup;
+
+    [SerializeField] private List<CanvasGroup> canvasGroupsToToggle = new List<CanvasGroup>();
 
     public bool IsVisible => canvasGroup != null && canvasGroup.alpha > 0f;
 
     private void Awake()
     {
         ResolveCanvasGroup();
-        ApplyState(IsVisible);
+        ApplyState(canvasGroup, IsVisible);
     }
 
     [ContextMenu("Toggle")]
     public void Toggle()
     {
-        SetVisible(!IsVisible);
+        if (IsVisible)
+        {
+            Hide();
+            return;
+        }
+
+        Show();
     }
 
     [ContextMenu("Show")]
     public void Show()
     {
-        SetVisible(true);
+        ResolveCanvasGroup();
+        Show(canvasGroup);
+    }
+
+    public void Show(CanvasGroup canvasGroupToShow)
+    {
+        HideAll();
+        ApplyState(canvasGroupToShow, true);
     }
 
     [ContextMenu("Hide")]
     public void Hide()
     {
-        SetVisible(false);
+        ResolveCanvasGroup();
+        ApplyState(canvasGroup, false);
     }
 
     public void SetVisible(bool visible)
     {
         ResolveCanvasGroup();
-        ApplyState(visible);
+
+        if (visible)
+        {
+            Show(canvasGroup);
+            return;
+        }
+
+        ApplyState(canvasGroup, false);
     }
 
-    private void ApplyState(bool visible)
+    public void HideAll()
     {
-        if (canvasGroup == null)
+        foreach (CanvasGroup group in canvasGroupsToToggle)
+        {
+            ApplyState(group, false);
+        }
+    }
+
+    private void ApplyState(CanvasGroup group, bool visible)
+    {
+        if (group == null)
         {
             return;
         }
 
-        canvasGroup.alpha = visible ? 1f : 0f;
-        canvasGroup.interactable = visible;
-        canvasGroup.blocksRaycasts = visible;
+        group.alpha = visible ? 1f : 0f;
+        group.interactable = visible;
+        group.blocksRaycasts = visible;
     }
 
     private void ResolveCanvasGroup()
@@ -58,6 +89,16 @@ public class CanvasGroupToggle : MonoBehaviour
         if (canvasGroup == null)
         {
             canvasGroup = GetComponent<CanvasGroup>();
+        }
+    }
+
+    private void Reset()
+    {
+        ResolveCanvasGroup();
+
+        if (canvasGroup != null && !canvasGroupsToToggle.Contains(canvasGroup))
+        {
+            canvasGroupsToToggle.Add(canvasGroup);
         }
     }
 }

@@ -120,6 +120,19 @@ public class PenDrawer : MonoBehaviour
     [Tooltip("Maximum time gap in seconds between right clicks to count as a double-click.")]
     [SerializeField] private float doubleClickThreshold = 0.3f;
 
+#if UNITY_EDITOR
+    [Header("Editor Hint Path Recording")]
+    [Tooltip("Play Mode authoring only. If enabled before tracing, the next completed stroke is saved as this stroke step's hand hint path.")]
+    [SerializeField] private bool saveHandHintPathFromNextStroke = false;
+
+    [Tooltip("Maximum number of saved waypoint points for the recorded hand hint path.")]
+    [Range(2, 24)]
+    [SerializeField] private int recordedHintPathMaxPoints = 10;
+
+    [Tooltip("Small movements below this local UI distance are ignored before the path is resampled.")]
+    [SerializeField] private float recordedHintPathMinPointDistance = 8f;
+#endif
+
     private UILine currentUILine;
     private RectTransform canvasRectTransform;
     private Camera mainCamera;
@@ -140,6 +153,12 @@ public class PenDrawer : MonoBehaviour
     private List<Vector2> remainingUncoveredPoints = new List<Vector2>();
     private int totalSamplePointsCount = 0;
     private LetterSequence activeLetterSequence;
+#if UNITY_EDITOR
+    private readonly List<Vector2> lastCompletedHintPathLocal = new List<Vector2>();
+    private readonly List<Vector2> activeHintPathLocalBuffer = new List<Vector2>();
+    private int lastCompletedHintLetterNumber = -1;
+    private int lastCompletedHintStepIndex = -1;
+#endif
 
     public bool IsActivelyDrawing => currentUILine != null && !drawingLockedUntilRelease && !drawingLockedAfterCompletion;
     public bool IsDrawingLockedAfterCompletion => drawingLockedAfterCompletion;
@@ -147,6 +166,118 @@ public class PenDrawer : MonoBehaviour
     public int CurrentSequenceStepIndex => currentSequenceStepIndex;
     public LetterSequence CurrentLetterSequence => GetActiveLetterSequence();
     public TracingStrokeStep CurrentSequenceStep => GetActiveSequenceStep();
+    public TracingSequenceAsset TracingSequence => tracingSequence;
+    public TracingLetterAsset CurrentLetterAsset => tracingSequence != null ? tracingSequence.GetLetterAsset(currentLetterNumber) : null;
+    public Graphic RevealTargetGraphic => revealTargetGraphic;
+    public Canvas ParentCanvas => parentCanvas;
+
+    public bool TryGetActiveHintPathLocal(out Vector2 start, out Vector2 end)
+    {
+        start = Vector2.zero;
+        end = Vector2.zero;
+
+        List<Vector2> path = new List<Vector2>();
+        if (!TryGetActiveHintPathLocal(path))
+        {
+            return false;
+        }
+
+        start = path[0];
+        end = path[path.Count - 1];
+        return true;
+    }
+
+    public bool TryGetActiveHintPathLocal(List<Vector2> path, int maxPathPoints = 18)
+    {
+        if (path == null)
+        {
+            return false;
+        }
+
+        path.Clear();
+
+        if (targetSamplePoints == null || targetSamplePoints.Count == 0)
+        {
+            return false;
+        }
+
+        float minX = float.PositiveInfinity;
+        float maxX = float.NegativeInfinity;
+        float minY = float.PositiveInfinity;
+        float maxY = float.NegativeInfinity;
+
+        for (int i = 0; i < targetSamplePoints.Count; i++)
+        {
+            Vector2 point = targetSamplePoints[i];
+            minX = Mathf.Min(minX, point.x);
+            maxX = Mathf.Max(maxX, point.x);
+            minY = Mathf.Min(minY, point.y);
+            maxY = Mathf.Max(maxY, point.y);
+        }
+
+        if (float.IsInfinity(minX) || float.IsInfinity(maxX) || float.IsInfinity(minY) || float.IsInfinity(maxY))
+        {
+            return false;
+        }
+
+        float width = maxX - minX;
+        float height = maxY - minY;
+        if (width <= 0.01f && height <= 0.01f)
+        {
+            return false;
+        }
+
+        bool vertical = height >= width;
+        int segmentCount = Mathf.Clamp(maxPathPoints, 2, 48);
+
+        for (int segment = 0; segment < segmentCount; segment++)
+        {
+            float t0 = (float)segment / segmentCount;
+            float t1 = (float)(segment + 1) / segmentCount;
+            float binMin = vertical ? Mathf.Lerp(maxY, minY, t1) : Mathf.Lerp(minX, maxX, t0);
+            float binMax = vertical ? Mathf.Lerp(maxY, minY, t0) : Mathf.Lerp(minX, maxX, t1);
+            Vector2 average = Vector2.zero;
+            int count = 0;
+
+            for (int i = 0; i < targetSamplePoints.Count; i++)
+            {
+                Vector2 point = targetSamplePoints[i];
+                float value = vertical ? point.y : point.x;
+                if (value < binMin || value > binMax)
+                {
+                    continue;
+                }
+
+                average += point;
+                count++;
+            }
+
+            if (count > 0)
+            {
+                path.Add(average / count);
+            }
+        }
+
+        if (path.Count >= 2)
+        {
+            return true;
+        }
+
+        if (height >= width)
+        {
+            float centerX = (minX + maxX) * 0.5f;
+            path.Add(new Vector2(centerX, maxY));
+            path.Add(new Vector2(centerX, minY));
+        }
+        else
+        {
+            float centerY = (minY + maxY) * 0.5f;
+            path.Add(new Vector2(minX, centerY));
+            path.Add(new Vector2(maxX, centerY));
+        }
+
+        return true;
+    }
 
     private void Start()
     {
@@ -499,6 +630,10 @@ public class PenDrawer : MonoBehaviour
 
     private void Update()
     {
+#if UNITY_EDITOR
+        HandleHintPathRecordingShortcut();
+#endif
+
         if (drawingLockedAfterCompletion)
         {
             if (currentUILine != null)
@@ -995,12 +1130,24 @@ public class PenDrawer : MonoBehaviour
     private void FinishStroke()
     {
         bool hadActiveStroke = currentUILine != null;
+#if UNITY_EDITOR
+        if (hadActiveStroke)
+        {
+            CacheCurrentStrokeAsHintPath();
+        }
+#endif
         CheckCoverageProgress(isFinalRelease: true);
         currentUILine = null;
 
         if (hadActiveStroke)
         {
             OnTraceStopped?.Invoke();
+#if UNITY_EDITOR
+            if (saveHandHintPathFromNextStroke)
+            {
+                SaveLastCompletedHintPath();
+            }
+#endif
         }
     }
 
@@ -1194,6 +1341,207 @@ public class PenDrawer : MonoBehaviour
         // Reset completion status and sample points for the new/cleared letter
         RebuildSamplePoints();
     }
+
+#if UNITY_EDITOR
+    private void HandleHintPathRecordingShortcut()
+    {
+        if (!Application.isPlaying || tracingSequence == null || revealTargetGraphic == null)
+        {
+            return;
+        }
+
+        if (!IsSaveHintPathKeyPressed())
+        {
+            return;
+        }
+
+        if (currentUILine != null)
+        {
+            CacheCurrentStrokeAsHintPath();
+        }
+
+        SaveLastCompletedHintPath();
+    }
+
+    private bool IsSaveHintPathKeyPressed()
+    {
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current != null &&
+            (Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.numpadEnterKey.wasPressedThisFrame))
+        {
+            return true;
+        }
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+        return Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+#else
+        return false;
+#endif
+    }
+
+    private void CacheCurrentStrokeAsHintPath()
+    {
+        lastCompletedHintPathLocal.Clear();
+
+        if (!TryGetCurrentStrokeInRevealLocalSpace(activeHintPathLocalBuffer))
+        {
+            return;
+        }
+
+        ResamplePath(activeHintPathLocalBuffer, lastCompletedHintPathLocal, recordedHintPathMaxPoints);
+        lastCompletedHintLetterNumber = currentLetterNumber;
+        lastCompletedHintStepIndex = currentSequenceStepIndex;
+    }
+
+    private bool TryGetCurrentStrokeInRevealLocalSpace(List<Vector2> outputPath)
+    {
+        if (outputPath == null)
+        {
+            return false;
+        }
+
+        outputPath.Clear();
+
+        if (currentUILine == null ||
+            currentUILine.points == null ||
+            currentUILine.points.Count < 2 ||
+            currentUILine.rectTransform == null ||
+            revealTargetGraphic == null)
+        {
+            return false;
+        }
+
+        RectTransform strokeRect = currentUILine.rectTransform;
+        RectTransform revealRect = revealTargetGraphic.rectTransform;
+        float minSqrDistance = Mathf.Max(0f, recordedHintPathMinPointDistance);
+        minSqrDistance *= minSqrDistance;
+        Vector2 lastAccepted = Vector2.zero;
+        bool hasAcceptedPoint = false;
+
+        for (int i = 0; i < currentUILine.points.Count; i++)
+        {
+            Vector3 worldPoint = strokeRect.TransformPoint(currentUILine.points[i]);
+            Vector2 revealLocalPoint = revealRect.InverseTransformPoint(worldPoint);
+
+            if (hasAcceptedPoint && (revealLocalPoint - lastAccepted).sqrMagnitude < minSqrDistance)
+            {
+                continue;
+            }
+
+            outputPath.Add(revealLocalPoint);
+            lastAccepted = revealLocalPoint;
+            hasAcceptedPoint = true;
+        }
+
+        if (outputPath.Count < 2 && currentUILine.points.Count >= 2)
+        {
+            Vector3 firstWorldPoint = strokeRect.TransformPoint(currentUILine.points[0]);
+            Vector3 lastWorldPoint = strokeRect.TransformPoint(currentUILine.points[currentUILine.points.Count - 1]);
+            outputPath.Clear();
+            outputPath.Add(revealRect.InverseTransformPoint(firstWorldPoint));
+            outputPath.Add(revealRect.InverseTransformPoint(lastWorldPoint));
+        }
+
+        return outputPath.Count >= 2;
+    }
+
+    private void ResamplePath(List<Vector2> sourcePath, List<Vector2> outputPath, int maxPoints)
+    {
+        outputPath.Clear();
+
+        if (sourcePath == null || sourcePath.Count < 2)
+        {
+            return;
+        }
+
+        int targetCount = Mathf.Clamp(maxPoints, 2, sourcePath.Count);
+        if (targetCount >= sourcePath.Count)
+        {
+            outputPath.AddRange(sourcePath);
+            return;
+        }
+
+        float totalLength = GetPathLength(sourcePath);
+        if (totalLength <= 0.01f)
+        {
+            outputPath.Add(sourcePath[0]);
+            outputPath.Add(sourcePath[sourcePath.Count - 1]);
+            return;
+        }
+
+        for (int i = 0; i < targetCount; i++)
+        {
+            float distance = totalLength * i / (targetCount - 1);
+            outputPath.Add(GetPointAtDistance(sourcePath, distance));
+        }
+    }
+
+    private float GetPathLength(List<Vector2> path)
+    {
+        float length = 0f;
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            length += Vector2.Distance(path[i], path[i + 1]);
+        }
+
+        return length;
+    }
+
+    private Vector2 GetPointAtDistance(List<Vector2> path, float targetDistance)
+    {
+        float travelled = 0f;
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            Vector2 from = path[i];
+            Vector2 to = path[i + 1];
+            float segmentLength = Vector2.Distance(from, to);
+            if (segmentLength <= 0.01f)
+            {
+                continue;
+            }
+
+            if (travelled + segmentLength >= targetDistance)
+            {
+                float t = (targetDistance - travelled) / segmentLength;
+                return Vector2.LerpUnclamped(from, to, t);
+            }
+
+            travelled += segmentLength;
+        }
+
+        return path[path.Count - 1];
+    }
+
+    private void SaveLastCompletedHintPath()
+    {
+        if (tracingSequence == null || lastCompletedHintPathLocal.Count < 2)
+        {
+            Debug.LogWarning("[PenDrawer] Draw a stroke first before saving a hand hint path.");
+            return;
+        }
+
+        LetterSequence sequence = tracingSequence.GetLetter(lastCompletedHintLetterNumber);
+        TracingStrokeStep step = sequence != null ? sequence.GetStep(lastCompletedHintStepIndex) : null;
+        if (step == null)
+        {
+            Debug.LogWarning($"[PenDrawer] Could not find letter {lastCompletedHintLetterNumber}, stroke {lastCompletedHintStepIndex + 1} to save hand hint path.");
+            return;
+        }
+
+        UnityEngine.Object assetToSave = tracingSequence.GetLetterAsset(lastCompletedHintLetterNumber);
+        if (assetToSave == null)
+        {
+            assetToSave = tracingSequence;
+        }
+
+        UnityEditor.Undo.RecordObject(assetToSave, "Save Recorded Hand Hint Path");
+        step.ReplaceHintPath(lastCompletedHintPathLocal);
+        UnityEditor.EditorUtility.SetDirty(assetToSave);
+        UnityEditor.AssetDatabase.SaveAssets();
+        saveHandHintPathFromNextStroke = false;
+        Debug.Log($"[PenDrawer] Saved {lastCompletedHintPathLocal.Count} hand hint path points for letter {lastCompletedHintLetterNumber}, stroke {lastCompletedHintStepIndex + 1}.");
+    }
+#endif
 
     private void OnDrawGizmosSelected()
     {

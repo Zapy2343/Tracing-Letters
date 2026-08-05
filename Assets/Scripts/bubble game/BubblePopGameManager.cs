@@ -20,7 +20,10 @@ public class BubblePopGameManager : MonoBehaviour
     [SerializeField] private BubblePopBubble bubblePrefab;
 
     [Header("Designer Sprites")]
-    [Tooltip("Outer bubble sprite. If empty, a simple generated bubble is used.")]
+    [Tooltip("Use the soft generated bubble image. Disable this to use Bubble Sprite instead.")]
+    [SerializeField] private bool useGeneratedBubbleSprite = true;
+
+    [Tooltip("Outer bubble sprite used when Use Generated Bubble Sprite is disabled. If empty, a generated bubble is used.")]
     [SerializeField] private Sprite bubbleSprite;
 
     [Tooltip("Optional sprite shown during the pop animation.")]
@@ -79,7 +82,7 @@ public class BubblePopGameManager : MonoBehaviour
 
     [Range(0.1f, 0.95f)]
     [Tooltip("How much of the bubble size the inside image fills.")]
-    [SerializeField] private float contentFillPercent = 0.84f;
+    [SerializeField] private float contentFillPercent = 0.46f;
 
     [Header("Bubble Colors")]
     [Tooltip("Randomly tint spawned bubble shells using the palette below.")]
@@ -179,6 +182,23 @@ public class BubblePopGameManager : MonoBehaviour
         }
 
         activeBubbles.Clear();
+    }
+
+    public void SetContentSprites(IList<Sprite> sprites)
+    {
+        contentSprites.Clear();
+        if (sprites == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < sprites.Count; i++)
+        {
+            if (sprites[i] != null)
+            {
+                contentSprites.Add(sprites[i]);
+            }
+        }
     }
 
     private IEnumerator SpawnLoop()
@@ -444,7 +464,7 @@ public class BubblePopGameManager : MonoBehaviour
 
     private Sprite GetBubbleSprite()
     {
-        if (bubbleSprite != null)
+        if (!useGeneratedBubbleSprite && bubbleSprite != null)
         {
             return bubbleSprite;
         }

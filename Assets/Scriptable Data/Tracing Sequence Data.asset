@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee16cb19e98b4f799d635f0855bf0d30, type: 3}
+  m_Name: Tracing Sequence Data
+  m_EditorClassIdentifier: Assembly-CSharp::TracingSequenceAsset
+  letterAssets:
+  - {fileID: 11400000, guid: e0dd7fee6b33a924bab9ff25b7420a98, type: 2}
+  - {fileID: 11400000, guid: 1ee23a4e538fb934292e7ebd1888d9d5, type: 2}
+  - {fileID: 11400000, guid: 043c7b7fa7d30f14c87690eb88334312, type: 2}
+  - {fileID: 11400000, guid: a2b28b3cfaf386b4b9531f4dee8a6fad, type: 2}
+  - {fileID: 11400000, guid: dcc6e77c489c80643bc6af611b579120, type: 2}
+  - {fileID: 11400000, guid: 07785fe9a2ba2a948a122bbb266198d7, type: 2}
+  - {fileID: 11400000, guid: eaaed78fde10f554999f3e244d23d8e6, type: 2}
+  - {fileID: 11400000, guid: 2454e1d92260bf242a259bb74515748c, type: 2}
+  - {fileID: 11400000, guid: a00496888af013e4a9cb0ed9e4ef9cd5, type: 2}
+  - {fileID: 11400000, guid: e0c1a2bb7231b3a4089f41c3b2fcb97d, type: 2}
+  - {fileID: 11400000, guid: 60723f5dfa40acf4d81db96f667b80ab, type: 2}
+  - {fileID: 11400000, guid: 03252f744bed578499455af7df988a27, type: 2}
+  - {fileID: 11400000, guid: 533c3f555b8b2f6478a96d3f19ee8855, type: 2}
+  - {fileID: 11400000, guid: 45681faaf8d94024a82252e325495621, type: 2}
+  - {fileID: 11400000, guid: 36a963851631d184ebb5e504386eec4a, type: 2}
+  - {fileID: 11400000, guid: 54027a6e8e06eea4cb52728371c69da4, type: 2}
+  - {fileID: 11400000, guid: 50f4adf77d578514cbc4b121cfd1357f, type: 2}
+  - {fileID: 11400000, guid: 6839ef3ee7640b04b9c58b07254ce227, type: 2}
+  - {fileID: 11400000, guid: 65d7d15dcd41f4d45baa8b5e6847dc47, type: 2}
+  - {fileID: 11400000, guid: cf4a6eb7a8057a0438886e03f390e6a9, type: 2}
+  - {fileID: 11400000, guid: 27f66be53dce17f4ea45ac98c30f5d95, type: 2}
+  - {fileID: 11400000, guid: 45c35dce03aa7164eae5d4b45ea596e7, type: 2}
+  - {fileID: 11400000, guid: 67ed11bc337822d4ba02621dcafa73c1, type: 2}
+  - {fileID: 11400000, guid: b9c501fd14ee07940b0783b9e0ec5a0c, type: 2}
+  - {fileID: 11400000, guid: 2a12de0fc49ec284fa3b53333b1fba16, type: 2}
+  - {fileID: 11400000, guid: bd7bcaa3b220adf4faa663d95031ebac, type: 2}
+  - {fileID: 11400000, guid: 6469d13d1ed3c2c4dae23876d684b82a, type: 2}
+  - {fileID: 11400000, guid: f383b14d9f564fe489c4e34ba0da8671, type: 2}
+  - {fileID: 11400000, guid: 7460719ba4b55e34d9f62ab1a7615da1, type: 2}
+  - {fileID: 11400000, guid: 4abe17cf524340a4dbf8a432883dcb47, type: 2}
+  - {fileID: 11400000, guid: 8401bcd727837c14da4a03b12753b5b3, type: 2}
+  - {fileID: 11400000, guid: 0ffafa5b6528a9242aa9e13a8217900c, type: 2}
+  - {fileID: 11400000, guid: 9cb108713ba054b4db4712e2a65d7ae9, type: 2}
+  - {fileID: 11400000, guid: 71d1eb59746850c478dbf1eb95d99224, type: 2}
+  - {fileID: 11400000, guid: 610006392758bf042937313e8f6cf8b0, type: 2}
+  - {fileID: 11400000, guid: fb79c906f7a296b4b8dce36c03e38120, type: 2}
+  letters:
+  - letterNumber: 1
+    bubbleCorrectImage: {fileID: 21300000, guid: 99ef623cd29d2964cb56eabbdadfa608, type: 3}
+    strokeSteps:
+    - stepName: 1
+      allowedAreaMask: {fileID: 21300000, guid: 25c792136f4e05f4abf9e004b6991345, type: 3}
+      hintPathPoints:
+      - {x: 9.0929, y: 174.92589}
+      - {x: 9.141319, y: -156.38708}
+      hintPathResolution: 18
+      completionThresholdOverride: 0.8
+    - stepName: 2
+      allowedAreaMask: {fileID: 21300000, guid: 4647bfc1c7f5e2d43bd4701c8cf60d0f, type: 3}
+      hintPathPoints:
+      - {x: -24.635048, y: 51.99968}
+      - {x: -107.24591, y: 55.23321}
+      - {x: -161.60667, y: -3.39326}
+      - {x: -137.66783, y: -79.28126}
+      - {x: -58.56003, y: -91.47731}
+      - {x: -1.1696168, y: -35.306133}
+      - {x: 48.735634, y: 28.446161}
+      - {x: 129.93973, y: 26.2777}
+      - {x: 171.81487, y: -41.506115}
+      - {x: 144.08557, y: -117.84827}
+      hintPathResolution: 48
+      completionThresholdOverride: 0.8
+    - stepName: 3
+      allowedAreaMask: {fileID: 21300000, guid: 120dd3519e440da43a83056fdfa970db, type: 3}
+      hintPathPoints:
+      - {x: -197.45056, y: 181.86069}
+      - {x: 203.24263, y: 181.31769}
+      hintPathResolution: 18
+      completionThresholdOverride: 0.8
