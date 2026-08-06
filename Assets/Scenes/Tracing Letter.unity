@@ -672,7 +672,7 @@ MonoBehaviour:
   penTip: {fileID: 0}
   tipOffset: {x: 0, y: 0}
   penColor: {r: 0.08334541, g: 1, b: 0, a: 1}
-  penRadius: 100
+  penRadius: 120
   minDistanceBetweenPoints: 2
   restrictDrawingToLetterShape: 1
   letterBoundaryTolerance: 6
@@ -705,6 +705,9 @@ MonoBehaviour:
   isCompleted: 0
   clearOnDoubleRightClick: 1
   doubleClickThreshold: 0.3
+  saveHandHintPathFromNextStroke: 0
+  recordedHintPathMaxPoints: 10
+  recordedHintPathMinPointDistance: 8
   drawingLockedAfterCompletion: 0
   maskWriterShader: {fileID: 4800000, guid: d3cdb5f0d3f4a4e4c97064b76b532b0c, type: 3}
   revealShader: {fileID: 4800000, guid: 315b0c78816d4214daf9382ad3e6e3c5, type: 3}
