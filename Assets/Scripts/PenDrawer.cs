@@ -68,6 +68,15 @@ public class PenDrawer : MonoBehaviour
     [Tooltip("If true and the active letter has stroke steps, only the current step mask can be traced.")]
     [SerializeField] private bool useSequenceTracing = true;
 
+    [Tooltip("If true, custom hand hint path points also define the required drawing order for the active stroke.")]
+    [SerializeField] private bool enforceSequentialHintPath = true;
+
+    [Tooltip("How close the pen must be to the first hint path point before a stroke can start.")]
+    [SerializeField] private float sequentialStartTolerance = 55f;
+
+    [Tooltip("How far the pen can drift from the current hint path segment while drawing.")]
+    [SerializeField] private float sequentialPathTolerance = 70f;
+
     [Header("Sequence Status (Read Only)")]
     [SerializeField] private int currentLetterNumber = 1;
     [SerializeField] private int currentSequenceStepIndex = 0;
@@ -153,6 +162,8 @@ public class PenDrawer : MonoBehaviour
     private List<Vector2> remainingUncoveredPoints = new List<Vector2>();
     private int totalSamplePointsCount = 0;
     private LetterSequence activeLetterSequence;
+    private readonly List<Vector2> activeSequentialPathLocal = new List<Vector2>();
+    private int nextSequentialPointIndex = 1;
 #if UNITY_EDITOR
     private readonly List<Vector2> lastCompletedHintPathLocal = new List<Vector2>();
     private readonly List<Vector2> activeHintPathLocalBuffer = new List<Vector2>();
@@ -659,9 +670,6 @@ public class PenDrawer : MonoBehaviour
 
         Vector2 tipScreenPos = GetPenTipScreenPosition();
 
-        bool canDrawAtTip = CanDrawAtScreenPosition(tipScreenPos);
-        Vector2 drawingScreenPos = canDrawAtTip ? GetCenteredDrawingScreenPosition(tipScreenPos) : tipScreenPos;
-
         if (IsMouseJustReleased())
         {
             drawingLockedUntilRelease = false;
@@ -669,7 +677,7 @@ public class PenDrawer : MonoBehaviour
             return;
         }
 
-        if (IsMouseJustPressed() && !canDrawAtTip)
+        if (IsMouseJustPressed() && !CanDrawAtScreenPosition(tipScreenPos))
         {
             drawingLockedUntilRelease = true;
             return;
@@ -680,19 +688,22 @@ public class PenDrawer : MonoBehaviour
             return;
         }
 
-        if (IsMouseJustPressed() && canDrawAtTip)
+        if (IsMouseJustPressed() && CanDrawAtScreenPosition(tipScreenPos))
         {
+            Vector2 drawingScreenPos = GetCenteredDrawingScreenPosition(tipScreenPos);
             StartNewStroke(drawingScreenPos);
         }
-        else if (IsMouseHeldDown() && currentUILine != null && canDrawAtTip)
+        else if (IsMouseHeldDown() && currentUILine != null && CanDrawAtScreenPosition(tipScreenPos, true))
         {
+            Vector2 drawingScreenPos = GetCenteredDrawingScreenPosition(tipScreenPos);
             UpdateCurrentStroke(drawingScreenPos);
         }
-        else if (IsMouseHeldDown() && currentUILine == null && canDrawAtTip)
+        else if (IsMouseHeldDown() && currentUILine == null && CanDrawAtScreenPosition(tipScreenPos))
         {
+            Vector2 drawingScreenPos = GetCenteredDrawingScreenPosition(tipScreenPos);
             StartNewStroke(drawingScreenPos);
         }
-        else if (IsMouseHeldDown() && currentUILine != null && !canDrawAtTip)
+        else if (IsMouseHeldDown() && currentUILine != null && !CanDrawAtScreenPosition(tipScreenPos))
         {
             FinishStroke();
             drawingLockedUntilRelease = true;
@@ -878,9 +889,9 @@ public class PenDrawer : MonoBehaviour
         return 0;
     }
 
-    private bool CanDrawAtScreenPosition(Vector2 screenPosition)
+    private bool CanDrawAtScreenPosition(Vector2 screenPosition, bool advanceSequentialPath = false)
     {
-        if (!restrictDrawingToLetterShape || drawingMode != DrawingMode.RevealMask)
+        if (drawingMode != DrawingMode.RevealMask)
         {
             return true;
         }
@@ -895,6 +906,27 @@ public class PenDrawer : MonoBehaviour
             return true;
         }
 
+        if (!TryGetRevealLocalPoint(screenPosition, out Vector2 localPoint))
+        {
+            return false;
+        }
+
+        bool isInsideLetter = !restrictDrawingToLetterShape ||
+            IsLocalPointInsideRevealSprite(localPoint, revealTargetGraphic.rectTransform);
+
+        return isInsideLetter &&
+            IsSequentialDrawAllowed(localPoint, advanceSequentialPath);
+    }
+
+    private bool TryGetRevealLocalPoint(Vector2 screenPosition, out Vector2 localPoint)
+    {
+        localPoint = Vector2.zero;
+
+        if (revealTargetGraphic == null)
+        {
+            return false;
+        }
+
         RectTransform targetRect = revealTargetGraphic.rectTransform;
         Camera uiCamera = (parentCanvas != null && parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay) ? null : parentCanvas?.worldCamera;
         if (uiCamera == null && parentCanvas != null && parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
@@ -902,12 +934,76 @@ public class PenDrawer : MonoBehaviour
             uiCamera = mainCamera;
         }
 
-        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(targetRect, screenPosition, uiCamera, out Vector2 localPoint))
+        return RectTransformUtility.ScreenPointToLocalPointInRectangle(targetRect, screenPosition, uiCamera, out localPoint);
+    }
+
+    private bool IsSequentialDrawAllowed(Vector2 localPoint, bool advanceSequentialPath)
+    {
+        if (!enforceSequentialHintPath || !TryGetActiveSequentialPath(activeSequentialPathLocal))
+        {
+            return true;
+        }
+
+        float startTolerance = Mathf.Max(sequentialStartTolerance, penRadius);
+        if (currentUILine == null)
+        {
+            return Vector2.Distance(localPoint, activeSequentialPathLocal[0]) <= startTolerance;
+        }
+
+        nextSequentialPointIndex = Mathf.Clamp(nextSequentialPointIndex, 1, activeSequentialPathLocal.Count - 1);
+        Vector2 from = activeSequentialPathLocal[nextSequentialPointIndex - 1];
+        Vector2 to = activeSequentialPathLocal[nextSequentialPointIndex];
+        float pathTolerance = Mathf.Max(sequentialPathTolerance, penRadius);
+        bool isOnCurrentSegment = IsPointNearSegment(localPoint, from, to, pathTolerance);
+
+        if (!isOnCurrentSegment)
         {
             return false;
         }
 
-        return IsLocalPointInsideRevealSprite(localPoint, targetRect);
+        if (advanceSequentialPath && Vector2.Distance(localPoint, to) <= pathTolerance)
+        {
+            nextSequentialPointIndex = Mathf.Min(nextSequentialPointIndex + 1, activeSequentialPathLocal.Count - 1);
+        }
+
+        return true;
+    }
+
+    private bool TryGetActiveSequentialPath(List<Vector2> outputPath)
+    {
+        if (outputPath == null)
+        {
+            return false;
+        }
+
+        outputPath.Clear();
+
+        TracingStrokeStep step = GetActiveSequenceStep();
+        return step != null && step.TryBuildHintPath(outputPath) && outputPath.Count >= 2;
+    }
+
+    private void BeginSequentialStroke(Vector2 screenPosition)
+    {
+        nextSequentialPointIndex = 1;
+
+        if (!enforceSequentialHintPath ||
+            !TryGetRevealLocalPoint(screenPosition, out Vector2 localPoint) ||
+            !TryGetActiveSequentialPath(activeSequentialPathLocal))
+        {
+            return;
+        }
+
+        float tolerance = Mathf.Max(sequentialStartTolerance, penRadius);
+        if (Vector2.Distance(localPoint, activeSequentialPathLocal[0]) > tolerance)
+        {
+            return;
+        }
+
+        while (nextSequentialPointIndex < activeSequentialPathLocal.Count - 1 &&
+            Vector2.Distance(localPoint, activeSequentialPathLocal[nextSequentialPointIndex]) <= tolerance)
+        {
+            nextSequentialPointIndex++;
+        }
     }
 
     private Vector2 GetCenteredDrawingScreenPosition(Vector2 screenPosition)
@@ -1089,6 +1185,7 @@ public class PenDrawer : MonoBehaviour
 
         lastLocalPoint = localPoint;
         currentUILine.AddPoint(localPoint);
+        BeginSequentialStroke(screenPosition);
         OnTraceStarted?.Invoke();
 
         CheckCoverageProgress(isFinalRelease: false);
@@ -1138,6 +1235,7 @@ public class PenDrawer : MonoBehaviour
 #endif
         CheckCoverageProgress(isFinalRelease: true);
         currentUILine = null;
+        nextSequentialPointIndex = 1;
 
         if (hadActiveStroke)
         {
@@ -1288,6 +1386,7 @@ public class PenDrawer : MonoBehaviour
         currentCoverageProgress = 0f;
         isCompleted = false;
         currentUILine = null;
+        nextSequentialPointIndex = 1;
 
         RebuildSamplePoints();
         Debug.Log($"[PenDrawer] Advanced to {GetActiveTracingName()}.");
@@ -1303,6 +1402,7 @@ public class PenDrawer : MonoBehaviour
     {
         currentSequenceStepIndex = 0;
         activeLetterSequence = GetActiveLetterSequence();
+        nextSequentialPointIndex = 1;
         drawingLockedAfterCompletion = false;
         drawingLockedUntilRelease = false;
         ResetSequenceStrokeLayers();

@@ -22,6 +22,8 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
 
     [Header("Hand Hint")]
     [SerializeField] private RectTransform handImage;
+    [SerializeField] private bool startHandHintFromButton = true;
+    [SerializeField] private Vector2 handStartOffset = Vector2.zero;
     [SerializeField] private float handSlideDistance = 260f;
     [SerializeField] private float handHintDuration = 1.1f;
     [SerializeField] private float handHintDelay = 0.15f;
@@ -194,8 +196,8 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
         while (isDragging && !hasDragged && !isLoading)
         {
             handImage.gameObject.SetActive(true);
-            Vector2 from = handStartPosition;
-            Vector2 to = handStartPosition + Vector2.left * handSlideDistance;
+            Vector2 from = GetHandHintStartPosition();
+            Vector2 to = from + Vector2.left * handSlideDistance;
             float elapsed = 0f;
             float duration = Mathf.Max(0.01f, handHintDuration);
 
@@ -217,7 +219,7 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
                 yield return null;
             }
 
-            handImage.anchoredPosition = handStartPosition;
+            handImage.anchoredPosition = GetHandHintStartPosition();
             if (handCanvasGroup != null)
             {
                 handCanvasGroup.alpha = 0f;
@@ -246,7 +248,7 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
             return;
         }
 
-        handImage.anchoredPosition = handStartPosition;
+        handImage.anchoredPosition = GetHandHintStartPosition();
         handImage.localScale = Vector3.one;
         handImage.gameObject.SetActive(false);
 
@@ -330,6 +332,24 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
         {
             handStartPosition = handImage.anchoredPosition;
         }
+    }
+
+    private Vector2 GetHandHintStartPosition()
+    {
+        if (!startHandHintFromButton || handImage == null || slidingButton == null)
+        {
+            return handStartPosition;
+        }
+
+        RectTransform handParent = handImage.parent as RectTransform;
+        if (handParent == null)
+        {
+            return handStartPosition;
+        }
+
+        Vector3 buttonWorldCenter = slidingButton.TransformPoint(slidingButton.rect.center);
+        Vector2 localPosition = handParent.InverseTransformPoint(buttonWorldCenter);
+        return localPosition + handStartOffset;
     }
 
     private void OnValidate()
