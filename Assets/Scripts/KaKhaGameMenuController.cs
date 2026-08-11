@@ -49,6 +49,7 @@ public class KaKhaGameMenuController : MonoBehaviour
     private Coroutine slideRoutine;
     private Coroutine lockedFeedbackRoutine;
     private Vector2 restingPosition;
+    private bool hasRestingPosition;
 
     private void Awake()
     {
@@ -62,7 +63,8 @@ public class KaKhaGameMenuController : MonoBehaviour
     {
         if (wordRectTransform != null)
         {
-            restingPosition = wordRectTransform.anchoredPosition;
+            CaptureRestingPosition();
+            ResetWordTransform();
         }
 
         RefreshProgressView();
@@ -78,7 +80,7 @@ public class KaKhaGameMenuController : MonoBehaviour
 
         if (wordRectTransform != null)
         {
-            wordRectTransform.anchoredPosition = restingPosition;
+            ResetWordTransform();
         }
 
         if (wordCanvasGroup != null)
@@ -115,7 +117,7 @@ public class KaKhaGameMenuController : MonoBehaviour
 
         if (wordRectTransform != null)
         {
-            restingPosition = wordRectTransform.anchoredPosition;
+            CaptureRestingPosition();
         }
     }
 
@@ -276,9 +278,10 @@ public class KaKhaGameMenuController : MonoBehaviour
     {
         if (slideRoutine != null)
         {
-            StopCoroutine(slideRoutine);
+            return;
         }
 
+        StopLockedFeedback();
         slideRoutine = StartCoroutine(SlideToLetterRoutine(letterNumber, direction));
     }
 
@@ -291,7 +294,8 @@ public class KaKhaGameMenuController : MonoBehaviour
             yield break;
         }
 
-        restingPosition = wordRectTransform.anchoredPosition;
+        CaptureRestingPosition();
+        ResetWordTransform();
         Vector2 exitPosition = restingPosition + Vector2.left * direction * slideDistance;
         Vector2 enterPosition = restingPosition - Vector2.left * direction * slideDistance;
 
@@ -303,6 +307,44 @@ public class KaKhaGameMenuController : MonoBehaviour
 
         yield return AnimateWord(enterPosition, restingPosition, 0f, 1f);
         slideRoutine = null;
+    }
+
+    private void StopLockedFeedback()
+    {
+        if (lockedFeedbackRoutine != null)
+        {
+            StopCoroutine(lockedFeedbackRoutine);
+            lockedFeedbackRoutine = null;
+        }
+
+        if (wordImage != null)
+        {
+            wordImage.color = IsCurrentLetterUnlocked() ? unlockedImageColor : lockedImageColor;
+        }
+    }
+
+    private void CaptureRestingPosition()
+    {
+        if (hasRestingPosition || wordRectTransform == null)
+        {
+            return;
+        }
+
+        restingPosition = wordRectTransform.anchoredPosition;
+        hasRestingPosition = true;
+    }
+
+    private void ResetWordTransform()
+    {
+        if (wordRectTransform != null && hasRestingPosition)
+        {
+            wordRectTransform.anchoredPosition = restingPosition;
+        }
+
+        if (wordCanvasGroup != null)
+        {
+            wordCanvasGroup.alpha = 1f;
+        }
     }
 
     private IEnumerator AnimateWord(Vector2 fromPosition, Vector2 toPosition, float fromAlpha, float toAlpha)
@@ -375,6 +417,11 @@ public class KaKhaGameMenuController : MonoBehaviour
 
     private void OpenSelectedLetter()
     {
+        if (slideRoutine != null)
+        {
+            return;
+        }
+
         if (!IsCurrentLetterUnlocked())
         {
             PlayLockedFeedback();
@@ -388,6 +435,11 @@ public class KaKhaGameMenuController : MonoBehaviour
 
     private void PlayLockedFeedback()
     {
+        if (slideRoutine != null)
+        {
+            return;
+        }
+
         if (lockedFeedbackRoutine != null)
         {
             StopCoroutine(lockedFeedbackRoutine);
