@@ -12,6 +12,7 @@ public class BubblePopLevelMenu : MonoBehaviour
     public const string SelectedLevelImageNameKey = "bubble_pop_selected_level_image_name";
     public const string UnlockedLevelIndexKey = "bubble_pop_unlocked_level_index";
     public const string BestScorePrefix = "bubble_pop_best_score_";
+    public const string CompletedLevelPrefix = "bubble_pop_completed_level_";
 
     [Header("Scene")]
     [SerializeField] private string bubbleGameSceneName = "Bubble POP Game";
@@ -52,6 +53,7 @@ public class BubblePopLevelMenu : MonoBehaviour
     {
         AutoFillButtonsIfEmpty();
         EnsureImageSlots();
+        PlayProgressTracker.RegisterBubblePopTotalItems(GetLevelCount());
         ApplyLevelImages();
         BindButtons();
         RefreshLocks();
@@ -143,6 +145,8 @@ public class BubblePopLevelMenu : MonoBehaviour
         }
 
         string scoreKey = BestScorePrefix + levelIndex;
+        PlayerPrefs.SetInt(CompletedLevelPrefix + levelIndex, 1);
+
         int bestScore = PlayerPrefs.GetInt(scoreKey, 0);
         if (score > bestScore)
         {
@@ -156,6 +160,37 @@ public class BubblePopLevelMenu : MonoBehaviour
         }
 
         PlayerPrefs.Save();
+    }
+
+    public static bool IsLevelCompleted(int levelIndex)
+    {
+        return levelIndex >= 0 && PlayerPrefs.GetInt(CompletedLevelPrefix + levelIndex, 0) == 1;
+    }
+
+    public static int GetCompletedLevelCount(int totalLevels)
+    {
+        int completedCount = 0;
+        int safeTotal = Mathf.Max(0, totalLevels);
+
+        for (int i = 0; i < safeTotal; i++)
+        {
+            if (IsLevelCompleted(i))
+            {
+                completedCount++;
+            }
+        }
+
+        return completedCount;
+    }
+
+    public static float GetProgress01(int totalLevels)
+    {
+        if (totalLevels <= 0)
+        {
+            return 0f;
+        }
+
+        return Mathf.Clamp01((float)GetCompletedLevelCount(totalLevels) / totalLevels);
     }
 
     public int GetTotalBestScore()
@@ -172,6 +207,7 @@ public class BubblePopLevelMenu : MonoBehaviour
     [ContextMenu("Reset Bubble Progress")]
     public void ResetProgress()
     {
+        PlayProgressTracker.RegisterBubblePopTotalItems(GetLevelCount());
         PlayerPrefs.SetInt(UnlockedLevelIndexKey, 0);
         PlayerPrefs.DeleteKey(SelectedLevelIndexKey);
         PlayerPrefs.DeleteKey(SelectedLevelImageNameKey);
@@ -179,6 +215,7 @@ public class BubblePopLevelMenu : MonoBehaviour
         for (int i = 0; i < GetLevelCount(); i++)
         {
             PlayerPrefs.DeleteKey(BestScorePrefix + i);
+            PlayerPrefs.DeleteKey(CompletedLevelPrefix + i);
         }
 
         PlayerPrefs.Save();

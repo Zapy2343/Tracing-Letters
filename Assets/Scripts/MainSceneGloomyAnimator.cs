@@ -1,14 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Adds a gloomy, kid-friendly idle motion pass to MainScreen without requiring every UI object to be wired manually.
+/// Adds a gloomy, kid-friendly idle motion pass only to designer-assigned UI objects.
 /// </summary>
 public class MainSceneGloomyAnimator : MonoBehaviour
 {
-    private enum MotionKind
+    public enum MotionKind
     {
         SoftBob,
         ButtonBreath,
@@ -17,6 +16,18 @@ public class MainSceneGloomyAnimator : MonoBehaviour
         MusicFloat,
         PanelFloat,
         GlowPulse
+    }
+
+    [System.Serializable]
+    private class MotionTargetConfig
+    {
+        public RectTransform rect = null;
+        public MotionKind kind = MotionKind.SoftBob;
+        public float amplitude = 1f;
+        public float speed = 1f;
+        public float delay = 0f;
+        public bool pulseGraphic = false;
+        public Graphic graphicOverride = null;
     }
 
     private struct MotionTarget
@@ -31,78 +42,33 @@ public class MainSceneGloomyAnimator : MonoBehaviour
         public float Delay;
         public float Amplitude;
         public float Speed;
+        public bool PulseGraphic;
     }
-
-    [Header("Scene Filter")]
-    [SerializeField] private string sceneName = "MainScreen";
 
     [Header("Motion")]
     [SerializeField] private bool animateOnStart = true;
     [SerializeField] private float globalIntensity = 1f;
-    [SerializeField] private float scanDelay = 0.1f;
+    [SerializeField] private List<MotionTargetConfig> animatedTargets = new List<MotionTargetConfig>();
 
     [Header("Gloom Glow")]
     [SerializeField] private Color warmGlowTint = new Color(1f, 0.84f, 0.45f, 1f);
     [SerializeField] private Color coolGlowTint = new Color(0.58f, 0.78f, 1f, 1f);
 
     private readonly List<MotionTarget> targets = new List<MotionTarget>();
-    private float startTime;
-    private bool hasScanned;
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void BootstrapActiveScene()
-    {
-        TryCreateForScene(SceneManager.GetActiveScene());
-        SceneManager.sceneLoaded -= HandleSceneLoaded;
-        SceneManager.sceneLoaded += HandleSceneLoaded;
-    }
-
-    private static void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        TryCreateForScene(scene);
-    }
-
-    private static void TryCreateForScene(Scene scene)
-    {
-        if (!scene.IsValid() || scene.name != "MainScreen")
-        {
-            return;
-        }
-
-        if (FindFirstObjectByType<MainSceneGloomyAnimator>() != null)
-        {
-            return;
-        }
-
-        GameObject animatorObject = new GameObject("Main Scene Gloomy Animator");
-        SceneManager.MoveGameObjectToScene(animatorObject, scene);
-        animatorObject.AddComponent<MainSceneGloomyAnimator>();
-    }
 
     private void Start()
     {
-        if (!animateOnStart || SceneManager.GetActiveScene().name != sceneName)
+        if (!animateOnStart)
         {
             enabled = false;
             return;
         }
 
-        startTime = Time.unscaledTime + Mathf.Max(0f, scanDelay);
+        RebuildTargets();
     }
 
     private void Update()
     {
-        if (!hasScanned && Time.unscaledTime >= startTime)
-        {
-            ScanScene();
-            hasScanned = true;
-        }
-
-        if (!hasScanned)
-        {
-            return;
-        }
-
         float time = Time.unscaledTime;
         float intensity = Mathf.Max(0f, globalIntensity);
 
@@ -118,125 +84,21 @@ public class MainSceneGloomyAnimator : MonoBehaviour
         }
     }
 
-    private void ScanScene()
+    [ContextMenu("Rebuild Motion Targets")]
+    public void RebuildTargets()
     {
         targets.Clear();
 
-        RectTransform[] rects = FindObjectsByType<RectTransform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        int animatedCount = 0;
-
-        for (int i = 0; i < rects.Length; i++)
+        for (int i = 0; i < animatedTargets.Count; i++)
         {
-            RectTransform rect = rects[i];
-            if (rect == null || ShouldSkip(rect))
+            MotionTargetConfig config = animatedTargets[i];
+            if (config == null || config.rect == null)
             {
                 continue;
             }
 
-            if (!TryGetMotion(rect, animatedCount, out MotionTarget target))
-            {
-                continue;
-            }
-
-            targets.Add(target);
-            animatedCount++;
+            targets.Add(CreateMotionTarget(config));
         }
-    }
-
-    private bool ShouldSkip(RectTransform rect)
-    {
-        if (!rect.gameObject.scene.IsValid() || rect.gameObject.scene.name != sceneName)
-        {
-            return true;
-        }
-
-        if (rect.GetComponent<UILine>() != null)
-        {
-            return true;
-        }
-
-        string lowerName = rect.name.ToLowerInvariant();
-        return lowerName.Contains("penstroke") ||
-            lowerName.Contains("sequence") ||
-            lowerName.Contains("mask") ||
-            lowerName.Contains("viewport") ||
-            lowerName.Contains("content");
-    }
-
-    private bool TryGetMotion(RectTransform rect, int index, out MotionTarget target)
-    {
-        target = new MotionTarget
-        {
-            Rect = rect,
-            Graphic = rect.GetComponent<Graphic>(),
-            BasePosition = rect.anchoredPosition,
-            BaseScale = rect.localScale,
-            BaseRotation = rect.localRotation,
-            Kind = MotionKind.SoftBob,
-            Delay = index * 0.17f,
-            Amplitude = 1f,
-            Speed = 1f
-        };
-
-        if (target.Graphic != null)
-        {
-            target.BaseColor = target.Graphic.color;
-        }
-
-        string name = rect.name.ToLowerInvariant();
-
-        if (name.Contains("cloud"))
-        {
-            target.Kind = MotionKind.CloudDrift;
-            target.Amplitude = 9f;
-            target.Speed = 0.45f;
-            return true;
-        }
-
-        if (name.Contains("flower"))
-        {
-            target.Kind = MotionKind.FlowerSway;
-            target.Amplitude = 3.5f;
-            target.Speed = 0.9f;
-            return true;
-        }
-
-        if (name.Contains("music note"))
-        {
-            target.Kind = MotionKind.MusicFloat;
-            target.Amplitude = 8f;
-            target.Speed = 0.8f;
-            return true;
-        }
-
-        if (name.Contains("button") || name.Contains("back"))
-        {
-            target.Kind = MotionKind.ButtonBreath;
-            target.Amplitude = 0.035f;
-            target.Speed = 1.1f;
-            return true;
-        }
-
-        if (name.Contains("game type holder") ||
-            name.Contains("no ads img") ||
-            name.Contains("support learning img") ||
-            name.Contains("icon"))
-        {
-            target.Kind = MotionKind.PanelFloat;
-            target.Amplitude = 4f;
-            target.Speed = 0.7f;
-            return true;
-        }
-
-        if (name.Contains("hand"))
-        {
-            target.Kind = MotionKind.GlowPulse;
-            target.Amplitude = 0.045f;
-            target.Speed = 1.25f;
-            return true;
-        }
-
-        return false;
     }
 
     private void ApplyMotion(MotionTarget target, float time, float intensity)
@@ -271,14 +133,44 @@ public class MainSceneGloomyAnimator : MonoBehaviour
 
             case MotionKind.GlowPulse:
                 target.Rect.localScale = target.BaseScale * (1f + ((wave + 1f) * 0.5f * target.Amplitude * intensity));
-                PulseGraphic(target, wave, warmGlowTint);
+                if (target.PulseGraphic)
+                {
+                    PulseGraphic(target, wave, warmGlowTint);
+                }
                 break;
 
             default:
                 target.Rect.anchoredPosition = target.BasePosition + new Vector2(0f, wave * target.Amplitude * intensity);
-                PulseGraphic(target, wave, coolGlowTint);
+                if (target.PulseGraphic)
+                {
+                    PulseGraphic(target, wave, coolGlowTint);
+                }
                 break;
         }
+    }
+
+    private MotionTarget CreateMotionTarget(MotionTargetConfig config)
+    {
+        Graphic graphic = config.graphicOverride != null
+            ? config.graphicOverride
+            : config.rect.GetComponent<Graphic>();
+
+        MotionTarget target = new MotionTarget
+        {
+            Rect = config.rect,
+            Graphic = graphic,
+            BasePosition = config.rect.anchoredPosition,
+            BaseScale = config.rect.localScale,
+            BaseRotation = config.rect.localRotation,
+            BaseColor = graphic != null ? graphic.color : Color.white,
+            Kind = config.kind,
+            Delay = config.delay,
+            Amplitude = config.amplitude,
+            Speed = config.speed,
+            PulseGraphic = config.pulseGraphic
+        };
+
+        return target;
     }
 
     private void PulseGraphic(MotionTarget target, float wave, Color tint)

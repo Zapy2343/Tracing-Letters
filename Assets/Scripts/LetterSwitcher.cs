@@ -80,6 +80,7 @@ public class LetterSwitcher : MonoBehaviour
         }
 
         // Set initial letter from the Ka/Kha menu selection without transition effect on start.
+        PlayProgressTracker.RegisterTracingTotalItems(GetTotalCount());
         int savedLetterNumber = PlayerPrefs.GetInt(SelectedTracingLetterNumberKey, 1);
         currentLetterNumber = Mathf.Clamp(savedLetterNumber, 1, Mathf.Max(1, GetTotalCount()));
         ApplyCurrentLetter();

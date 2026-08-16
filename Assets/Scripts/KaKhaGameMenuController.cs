@@ -55,6 +55,7 @@ public class KaKhaGameMenuController : MonoBehaviour
     {
         ResolveReferences();
         LoadSpritesIfEmpty();
+        PlayProgressTracker.RegisterTracingTotalItems(GetTotalLetters());
         ConfigureButtons();
         ApplyCurrentLetter();
     }

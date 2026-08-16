@@ -19,16 +19,51 @@ public static class KaKhaTracingProgress
         return PlayerPrefs.GetInt(TotalScoreKey, 0);
     }
 
+    public static bool IsLetterCompleted(int letterNumber)
+    {
+        return letterNumber > 0 && PlayerPrefs.GetInt(CompletedLetterPrefix + letterNumber, 0) == 1;
+    }
+
+    public static int GetCompletedLetterCount(int totalLetters)
+    {
+        int completedCount = 0;
+        int safeTotal = Mathf.Max(0, totalLetters);
+
+        for (int i = 1; i <= safeTotal; i++)
+        {
+            if (IsLetterCompleted(i))
+            {
+                completedCount++;
+            }
+        }
+
+        return completedCount;
+    }
+
+    public static float GetProgress01(int totalLetters)
+    {
+        if (totalLetters <= 0)
+        {
+            return 0f;
+        }
+
+        return Mathf.Clamp01((float)GetCompletedLetterCount(totalLetters) / totalLetters);
+    }
+
     public static void CompleteLetter(int letterNumber, int scoreToAdd, int totalLetters)
     {
         int safeLetterNumber = Mathf.Clamp(letterNumber, 1, Mathf.Max(1, totalLetters));
         int safeScore = Mathf.Max(0, scoreToAdd);
         string completedKey = CompletedLetterPrefix + safeLetterNumber;
+        PlayProgressTracker.RegisterTracingTotalItems(totalLetters);
 
-        if (safeScore > 0 && PlayerPrefs.GetInt(completedKey, 0) == 0)
+        if (PlayerPrefs.GetInt(completedKey, 0) == 0)
         {
-            PlayerPrefs.SetInt(TotalScoreKey, GetTotalScore() + safeScore);
             PlayerPrefs.SetInt(completedKey, 1);
+            if (safeScore > 0)
+            {
+                PlayerPrefs.SetInt(TotalScoreKey, GetTotalScore() + safeScore);
+            }
         }
 
         string bestScoreKey = BestScorePrefix + safeLetterNumber;
@@ -49,6 +84,7 @@ public static class KaKhaTracingProgress
 
     public static void ResetProgress(int totalLetters)
     {
+        PlayProgressTracker.RegisterTracingTotalItems(totalLetters);
         PlayerPrefs.DeleteKey(SelectedTracingLetterNumberKey);
         PlayerPrefs.DeleteKey(HighestUnlockedLetterNumberKey);
         PlayerPrefs.DeleteKey(TotalScoreKey);
