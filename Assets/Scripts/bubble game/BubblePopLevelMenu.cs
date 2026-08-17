@@ -15,7 +15,7 @@ public class BubblePopLevelMenu : MonoBehaviour
     public const string CompletedLevelPrefix = "bubble_pop_completed_level_";
 
     [Header("Scene")]
-    [SerializeField] private string bubbleGameSceneName = "Bubble POP Game";
+    [SerializeField] private string bubbleGameSceneName = "Bubble POP";
 
     [Header("Levels")]
     [SerializeField] private RectTransform bubblesRoot;

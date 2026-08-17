@@ -5,10 +5,24 @@ public class BubblePopSelectedLevelImageProvider : MonoBehaviour
 {
     [SerializeField] private BubblePopGameManager gameManager;
     [SerializeField] private List<Sprite> levelImages = new List<Sprite>();
+    [SerializeField] private bool startGameAfterApply = false;
+
+    private bool hasStartedGame;
 
     private void Awake()
     {
         ApplySelectedLevelImage();
+    }
+
+    private void OnEnable()
+    {
+        ApplySelectedLevelImage();
+
+        if (startGameAfterApply && !hasStartedGame && gameManager != null)
+        {
+            hasStartedGame = true;
+            gameManager.StartGame();
+        }
     }
 
     [ContextMenu("Apply Selected Level Image")]

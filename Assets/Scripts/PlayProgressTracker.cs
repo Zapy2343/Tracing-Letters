@@ -14,7 +14,7 @@ public class PlayProgressTracker : MonoBehaviour
     private static readonly HashSet<string> PlayTimeSceneNames = new HashSet<string>
     {
         "Tracing Letter",
-        "Bubble POP Game"
+        "Bubble POP"
     };
 
     private float saveTimer;

@@ -3567,7 +3567,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b88e9d924dd4f65a38e36c0e2d405b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BubblePopLevelMenu
-  bubbleGameSceneName: Bubble POP Game
+  bubbleGameSceneName: Bubble POP
   bubblesRoot: {fileID: 754425989}
   levelImages:
   - {fileID: 21300000, guid: e08d311d59c4a674b8ed27adee89c37a, type: 3}
