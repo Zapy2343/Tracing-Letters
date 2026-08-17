@@ -151,6 +151,7 @@ public class PenDrawer : MonoBehaviour
     private Material revealMaterial;
     private bool drawingLockedUntilRelease = false;
     [SerializeField] private bool drawingLockedAfterCompletion = false;
+    [SerializeField] private bool drawingLockedForHint = false;
     private readonly List<Material> runtimeStrokeMaterials = new List<Material>();
     private readonly List<Image> sequenceStrokeLayers = new List<Image>();
     private readonly List<Material> sequenceRevealMaterials = new List<Material>();
@@ -173,6 +174,7 @@ public class PenDrawer : MonoBehaviour
 
     public bool IsActivelyDrawing => currentUILine != null && !drawingLockedUntilRelease && !drawingLockedAfterCompletion;
     public bool IsDrawingLockedAfterCompletion => drawingLockedAfterCompletion;
+    public bool IsDrawingLockedForHint => drawingLockedForHint;
     public int CurrentLetterNumber => currentLetterNumber;
     public int CurrentSequenceStepIndex => currentSequenceStepIndex;
     public LetterSequence CurrentLetterSequence => GetActiveLetterSequence();
@@ -342,6 +344,16 @@ public class PenDrawer : MonoBehaviour
         activeLetterSequence = GetActiveLetterSequence();
         SetupSequenceStrokeLayers();
         ClearAllLines();
+    }
+
+    public void SetHintGateLocked(bool locked)
+    {
+        drawingLockedForHint = locked;
+
+        if (drawingLockedForHint && currentUILine != null)
+        {
+            FinishStroke();
+        }
     }
 
     [Header("Custom Stencil Shaders & Materials (Prevents Stripping in PC Build)")]
@@ -674,6 +686,11 @@ public class PenDrawer : MonoBehaviour
         {
             drawingLockedUntilRelease = false;
             FinishStroke();
+            return;
+        }
+
+        if (drawingLockedForHint)
+        {
             return;
         }
 

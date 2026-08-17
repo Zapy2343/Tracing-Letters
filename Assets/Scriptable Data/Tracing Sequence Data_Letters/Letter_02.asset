@@ -14,25 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TracingLetterAsset
   letter:
     letterNumber: 2
-    bubbleCorrectImage: {fileID: 21300000, guid: 97b3719693c04144dac33b142f2cf91f, type: 3}
+    bubbleCorrectImage: {fileID: 21300000, guid: b1fbd1d1fa2da5546a61f0c45d328e83, type: 3}
     strokeSteps:
     - stepName: 1
-      allowedAreaMask: {fileID: 21300000, guid: 2bc1b6699c1b99d47a2c219ed33a91ba, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 937947688db358b40b6db738535f355d, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 2
-      allowedAreaMask: {fileID: 21300000, guid: 7169da3256b537b408e1c37b83c24bb7, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 2164255aa303eec4aa02984cd42e936a, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 3
-      allowedAreaMask: {fileID: 21300000, guid: bc76d72f757cc6a4b988e686567fdfeb, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 2ae19f77d242f454e9b42f4533f3236b, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 4
-      allowedAreaMask: {fileID: 21300000, guid: cca8a4d4f88e08c41add1d86893dc872, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: f99c2e520dd61af4eb3759de97a74afc, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0

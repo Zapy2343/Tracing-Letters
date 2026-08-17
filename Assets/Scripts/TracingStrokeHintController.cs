@@ -36,6 +36,7 @@ public class TracingStrokeHintController : MonoBehaviour
         Subscribe();
         playedStrokeHints.Clear();
         UpdateObservedStep();
+        SetHintGate(true);
         ScheduleHint(initialDelay);
     }
 
@@ -51,8 +52,13 @@ public class TracingStrokeHintController : MonoBehaviour
             if (penDrawer.CurrentLetterNumber != observedLetterNumber)
             {
                 playedStrokeHints.Clear();
+                SetHintGate(true);
+                UpdateObservedStep();
+                ScheduleHint(initialDelay);
+                return;
             }
 
+            SetHintGate(true);
             UpdateObservedStep();
             ScheduleHint(stepDelay);
         }
@@ -62,6 +68,7 @@ public class TracingStrokeHintController : MonoBehaviour
     {
         Unsubscribe();
         StopHint();
+        SetHintGate(false);
     }
 
     private void Subscribe()
@@ -122,6 +129,7 @@ public class TracingStrokeHintController : MonoBehaviour
         if (playedStrokeHints.Contains(hintKey) || !TryGetActiveStepLocalPath(canvasHintPath))
         {
             HideHintHand();
+            SetHintGate(false);
             hintRoutine = null;
             yield break;
         }
@@ -157,7 +165,16 @@ public class TracingStrokeHintController : MonoBehaviour
         }
 
         HideHintHand();
+        SetHintGate(false);
         hintRoutine = null;
+    }
+
+    private void SetHintGate(bool locked)
+    {
+        if (penDrawer != null)
+        {
+            penDrawer.SetHintGateLocked(locked);
+        }
     }
 
     private bool TryGetActiveStepLocalPath(List<Vector2> outputPath)

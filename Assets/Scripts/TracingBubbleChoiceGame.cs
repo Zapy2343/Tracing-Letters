@@ -18,6 +18,9 @@ public class TracingBubbleChoiceGame : MonoBehaviour
     [Tooltip("Show the quiz when the entire current letter is completed.")]
     [SerializeField] private bool showOnLetterCompleted = true;
 
+    [Tooltip("Delay before showing the bubble quiz after tracing completes. Keep this in sync with the completion FX duration.")]
+    [SerializeField] private float showAfterLetterCompletedDelay = 2.4f;
+
     [Header("Bubble UI")]
     [Tooltip("Canvas that contains the bubble choices. Auto-detected if empty.")]
     [SerializeField] private Canvas targetCanvas;
@@ -89,6 +92,7 @@ public class TracingBubbleChoiceGame : MonoBehaviour
     private Sprite activeCorrectSprite;
     private bool quizActive;
     private bool quizSolved;
+    private Coroutine pendingShowRoutine;
 
     private struct BubbleChoiceData
     {
@@ -146,11 +150,32 @@ public class TracingBubbleChoiceGame : MonoBehaviour
             penDrawer.OnMaskCompleted.RemoveListener(ShowForCurrentTracingTarget);
         }
 
+        CancelPendingShow();
         ClearChoices();
     }
 
     [ContextMenu("Show Bubble Choices")]
     public void ShowForCurrentTracingTarget()
+    {
+        CancelPendingShow();
+
+        if (showAfterLetterCompletedDelay > 0f && Application.isPlaying)
+        {
+            pendingShowRoutine = StartCoroutine(ShowForCurrentTracingTargetAfterDelay());
+            return;
+        }
+
+        ShowForCurrentTracingTargetNow();
+    }
+
+    private IEnumerator ShowForCurrentTracingTargetAfterDelay()
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, showAfterLetterCompletedDelay));
+        pendingShowRoutine = null;
+        ShowForCurrentTracingTargetNow();
+    }
+
+    private void ShowForCurrentTracingTargetNow()
     {
         Sprite correctSprite = GetCorrectBubbleSprite();
         if (correctSprite == null)
@@ -160,6 +185,17 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         }
 
         ShowChoices(correctSprite);
+    }
+
+    private void CancelPendingShow()
+    {
+        if (pendingShowRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(pendingShowRoutine);
+        pendingShowRoutine = null;
     }
 
     public void ShowChoices(Sprite correctSprite)
@@ -649,5 +685,6 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         wiggleFrequency = Mathf.Max(0f, wiggleFrequency);
         despawnPadding = Mathf.Max(0f, despawnPadding);
         contentFillPercent = Mathf.Clamp(contentFillPercent, 0.1f, 0.95f);
+        showAfterLetterCompletedDelay = Mathf.Max(0f, showAfterLetterCompletedDelay);
     }
 }

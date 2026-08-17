@@ -1025,7 +1025,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &560858500
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1385,6 +1385,7 @@ MonoBehaviour:
   letterSwitcher: {fileID: 1407733225}
   soundManager: {fileID: 1329518003}
   showOnLetterCompleted: 1
+  showAfterLetterCompletedDelay: 2.45
   targetCanvas: {fileID: 0}
   choiceArea: {fileID: 0}
   bubblePrefab: {fileID: 7889123989850395371, guid: c1237eec8ec3f3246903fb3b128af170, type: 3}
@@ -1550,7 +1551,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 10ad620b2a67e4241aa0c49b2da52516, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9932cbcc2dda2bf499bfebee711a0dab, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -1585,7 +1586,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 488.2085, y: 444.97534}
+  m_SizeDelta: {x: 512, y: 512}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1166362149
 GameObject:
@@ -1714,25 +1715,68 @@ MonoBehaviour:
   letterSwitcher: {fileID: 1407733225}
   designLetterTransform: {fileID: 1139957711}
   dottedLetterTransform: {fileID: 1460249310}
-  sparkSprite: {fileID: 21300000, guid: 80972262528968346881fabcb24892c4, type: 3}
+  sparkSprite: {fileID: 21300000, guid: 561c7c6679e33144d9f2b78a8e97c467, type: 3}
   glowSprite: {fileID: 21300000, guid: dca8d6427da1bc84aa7db3412f925a3a, type: 3}
   starburstSprite: {fileID: 21300000, guid: 80972262528968346881fabcb24892c4, type: 3}
   lightRaysSprite: {fileID: 21300000, guid: d217548be81f28945a694438b04b6b46, type: 3}
   sheenSprite: {fileID: 21300000, guid: 1718ce6fea96c15468d7d55a30a4c547, type: 3}
+  completionBalloonSprites:
+  - {fileID: -1118764611, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -944182940, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -883958971, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: 1789389789, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -103612410, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -860473812, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  completionConfettiSprites:
+  - {fileID: 2084630341, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -1335970286, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: 715072919, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -2078598401, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -70058073, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: 1980025297, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: 204721636, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  whiteSparkleSprite: {fileID: 580120832, guid: 04058552a9e193346a333f94e2e492c5, type: 3}
+  whiteStreakSprite: {fileID: 1804788677, guid: 04058552a9e193346a333f94e2e492c5, type: 3}
   enableTracingTrail: 1
   trailSpawnInterval: 0.035
   trailParticleSizeRange: {x: 25, y: 50}
   trailParticleLifetime: 0.45
-  enableCompletionBurst: 1
+  enableCompletionBurst: 0
   burstParticleCount: 35
   burstSpeedRange: {x: 180, y: 450}
+  enableLetterGlowPulse: 0
+  letterGlowPulseCount: 2
+  letterGlowPulseDuration: 0.55
+  letterGlowPulseScale: 0.22
+  enableCompletionRipples: 0
+  completionRippleCount: 2
+  enableCompletionSparkleShower: 0
+  sparkleShowerParticleCount: 24
+  playDelayedCompletionAccent: 0
+  delayedCompletionAccentDelay: 0.18
+  enableGuaranteedCompletionFlash: 1
+  referenceCompletionDuration: 2.4
+  fullScreenSparkleCount: 70
+  fullScreenFlashMaxAlpha: 0.12
+  enableReferenceBalloons: 1
+  referenceBalloonCount: 12
+  referenceBalloonHeightRange: {x: 190, y: 270}
+  enableReferenceConfetti: 1
+  referenceConfettiCount: 90
+  enableReferenceWhiteStreaks: 0
+  enableReferenceStyleLetterSweep: 1
+  completionSweepColor: {r: 1, g: 0.88, b: 0.04, a: 0.95}
+  completionSweepThickness: 78
+  completionSweepStrokeDuration: 0.36
+  completionSweepStepDelay: 0.08
   animateLetterOnCompletion: 1
   bounceDuration: 0.65
   peakScale: 1.25
   enableTransitionFX: 1
-  transitionDuration: 0.55
+  transitionDuration: 0.8
   spiralRotations: 2
   spiralParticleCount: 24
+  letterLoadBurstScale: 1.85
   vibrantColors:
   - {r: 1, g: 0.85, b: 0.2, a: 1}
   - {r: 0.2, g: 0.9, b: 1, a: 1}
@@ -2633,7 +2677,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: -82}
-  m_SizeDelta: {x: 488.2085, y: 444.97534}
+  m_SizeDelta: {x: 512, y: 512}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1460249311
 MonoBehaviour:
@@ -2655,7 +2699,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 10ad620b2a67e4241aa0c49b2da52516, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9932cbcc2dda2bf499bfebee711a0dab, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
