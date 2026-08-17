@@ -77,10 +77,11 @@ public class AdManager : MonoBehaviour
 
     public void SetRemoveAdsPurchased(bool purchased)
     {
+        print("has purchased");
         hasPurchasedRemoveAds = purchased;
         PlayerPrefs.SetInt(RemoveAdsPlayerPrefsKey, purchased ? 1 : 0);
         PlayerPrefs.Save();
-
+        
         if (purchased)
         {
             HideBannerAd();
