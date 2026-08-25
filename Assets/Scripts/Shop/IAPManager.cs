@@ -1,5 +1,7 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.Purchasing;
+
+#pragma warning disable CS0618 // Suppresses obsolete warning while using Unity IAP transitional API
 
 public class IAPManager : MonoBehaviour, IStoreListener
 {
@@ -13,10 +15,10 @@ public class IAPManager : MonoBehaviour, IStoreListener
     public event System.Action<string> OnPurchaseSuccess;
     public event System.Action<string> OnPurchaseFailedEvent;
 
-    [SerializeField] string ProductId;
-    [SerializeField] GameObject PurchaseSuccessPanel;
+    [SerializeField] private string defaultProductId = IAPProducts.NO_ADS;
+    [SerializeField] private GameObject purchaseSuccessPanel;
 
-    void Awake()
+    private void Awake()
     {
         if (Instance != null && Instance != this)
         {
@@ -28,55 +30,51 @@ public class IAPManager : MonoBehaviour, IStoreListener
         InitializeIAP();
     }
 
-    void InitializeIAP()
+    private void InitializeIAP()
     {
-
         var module = StandardPurchasingModule.Instance();
-
-
         module.useFakeStoreUIMode = FakeStoreUIMode.StandardUser;
 
-
         var builder = ConfigurationBuilder.Instance(module);
-       
-        builder.AddProduct(IAPProducts.NO_ADS,
-            ProductType.NonConsumable);
+        builder.AddProduct(IAPProducts.NO_ADS, ProductType.NonConsumable);
 
         UnityPurchasing.Initialize(this, builder);
     }
 
     // Buy
-    public void BuyProduct(string productId)
+    public void BuyProduct(string productId = null)
     {
-        productId = ProductId;
-        Debug.LogError("buy btn clicked");
+        string targetId = string.IsNullOrEmpty(productId) ? defaultProductId : productId;
+
         if (!IsInitialized)
         {
-            Debug.LogError("IAP not ready");
+            Debug.LogError("[IAPManager] IAP not ready");
             return;
         }
 
-        Product p = _store.products.WithID(productId);
+        Product p = _store.products.WithID(targetId);
         if (p != null && p.availableToPurchase)
         {
             _store.InitiatePurchase(p);
-            Debug.LogError($"Product successfull");
+            Debug.Log($"[IAPManager] Initiating purchase for: {targetId}");
         }
         else
-            Debug.LogError($"Product unavailable: {productId}");
+        {
+            Debug.LogError($"[IAPManager] Product unavailable: {targetId}");
+        }
     }
 
     // Restore 
     public void RestorePurchases()
     {
 #if UNITY_IOS
-    _extensions.GetExtension<IAppleExtensions>()
-        .RestoreTransactions((result, error) =>
-            Debug.Log($"Restore: {result} {error}"));
+        _extensions?.GetExtension<IAppleExtensions>()
+            ?.RestoreTransactions((result, error) =>
+                Debug.Log($"[IAPManager] Restore: {result} {error}"));
 #elif UNITY_ANDROID
-        _extensions.GetExtension<IGooglePlayStoreExtensions>()
-            .RestoreTransactions((result, error) =>
-                Debug.LogError($"Restore: {result} {error}"));
+        _extensions?.GetExtension<IGooglePlayStoreExtensions>()
+            ?.RestoreTransactions((result, error) =>
+                Debug.LogError($"[IAPManager] Restore: {result} {error}"));
 #endif
     }
 
@@ -84,51 +82,49 @@ public class IAPManager : MonoBehaviour, IStoreListener
     public bool HasNoAds()
     {
         return IsOwned(IAPProducts.NO_ADS);
-            
     }
     
-    public bool IsOwned(string productId)
+    public bool IsOwned(string productId = null)
     {
-        productId = ProductId;
+        string targetId = string.IsNullOrEmpty(productId) ? defaultProductId : productId;
 
         if (!IsInitialized) return false;
-        Product p = _store.products.WithID(productId);
+        Product p = _store.products.WithID(targetId);
         return p != null && p.hasReceipt;
     }
 
-    public string GetPrice(string productId)
+    public string GetPrice(string productId = null)
     {
-        productId = ProductId;
+        string targetId = string.IsNullOrEmpty(productId) ? defaultProductId : productId;
 
         if (!IsInitialized) return "...";
-        Product p = _store.products.WithID(productId);
-        return p != null
-            ? p.metadata.localizedPriceString
-            : "N/A";
+        Product p = _store.products.WithID(targetId);
+        return p != null ? p.metadata.localizedPriceString : "N/A";
     }
 
-    //IStoreListener 
+    // IStoreListener 
 
-    public void OnInitialized(
-        IStoreController controller,
-        IExtensionProvider extensions)
+    public void OnInitialized(IStoreController controller, IExtensionProvider extensions)
     {
         _store = controller;
         _extensions = extensions;
-        Debug.LogError("IAP initialized");
+        Debug.Log("[IAPManager] IAP initialized");
 
         if (HasNoAds())
+        {
             SetNoAds(true);
+        }
     }
 
-    public void OnInitializeFailed(
-        InitializationFailureReason reason)
-        => Debug.LogError($"IAP init failed: {reason}");
+    public void OnInitializeFailed(InitializationFailureReason reason)
+    {
+        Debug.LogError($"[IAPManager] IAP init failed: {reason}");
+    }
 
-    public void OnInitializeFailed(
-        InitializationFailureReason reason,
-        string message)
-        => Debug.LogError($"IAP init failed: {reason} {message}");
+    public void OnInitializeFailed(InitializationFailureReason reason, string message)
+    {
+        Debug.LogError($"[IAPManager] IAP init failed: {reason} {message}");
+    }
 
     public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
     {
@@ -136,7 +132,6 @@ public class IAPManager : MonoBehaviour, IStoreListener
 
         switch (id)
         {
-            // No Ads 
             case IAPProducts.NO_ADS:
                 SetNoAds(true);
                 break;
@@ -146,27 +141,31 @@ public class IAPManager : MonoBehaviour, IStoreListener
         return PurchaseProcessingResult.Complete;
     }
 
-    public void OnPurchaseFailed(
-        Product product,
-        PurchaseFailureReason reason)
+    public void OnPurchaseFailed(Product product, PurchaseFailureReason reason)
     {
-        Debug.LogError(
-            $"Purchase failed: {product.definition.id} — {reason}");
+        Debug.LogError($"[IAPManager] Purchase failed: {product.definition.id} - {reason}");
         OnPurchaseFailedEvent?.Invoke(product.definition.id);
     }
 
-    //Benefit helpers 
+    // Benefit helpers 
 
-    void SetNoAds(bool value)
+    private void SetNoAds(bool value)
     {
-        print("purchase done");
-        AdManager.Instance.SetRemoveAdsPurchased(value);
-        PurchaseSuccessPanel.SetActive(value);
+        if (AdManager.Instance != null)
+        {
+            AdManager.Instance.SetRemoveAdsPurchased(value);
+        }
+
+        if (purchaseSuccessPanel != null)
+        {
+            purchaseSuccessPanel.SetActive(value);
+        }
     }
 }
-
 
 public static class IAPProducts
 {
     public const string NO_ADS = "no_ads_forever";
 }
+
+#pragma warning restore CS0618
