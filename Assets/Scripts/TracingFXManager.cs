@@ -197,6 +197,8 @@ public class TracingFXManager : MonoBehaviour
     private Canvas parentCanvas;
     private Canvas fxCanvas;
     private RectTransform fxContainer;
+    public static TracingFXManager Instance { get; private set; }
+
     private Material additiveMaterial;
     private Sprite generatedSoftCircleSprite;
     private float lastTrailSpawnTime;
@@ -206,9 +208,15 @@ public class TracingFXManager : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+
         mainCamera = Camera.main;
         InitializeFXContainer();
         CreateAdditiveMaterial();
+        AutoLoadSpritesIfEmpty();
     }
 
     private void OnEnable()
@@ -1619,6 +1627,104 @@ public class TracingFXManager : MonoBehaviour
         }
 
         Destroy(pObj);
+    }
+
+    private void AutoLoadSpritesIfEmpty()
+    {
+#if UNITY_EDITOR
+        if (sparkSprite == null)
+            sparkSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX sprites/ui_glow_spark.png");
+        if (glowSprite == null)
+            glowSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX sprites/Glow.png");
+        if (starburstSprite == null)
+            starburstSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX sprites/Glow1.png");
+        if (lightRaysSprite == null)
+            lightRaysSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX sprites/GlowFxLightRays.png");
+        if (sheenSprite == null)
+            sheenSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/FX sprites/ui_sheen_sprite.png");
+
+        if (whiteSparkleSprite == null || whiteStreakSprite == null)
+        {
+            string[] sparkleGuids = UnityEditor.AssetDatabase.FindAssets("Sparkles t:Sprite", new[] { "Assets/Sprites/CompletionFX" });
+            if (sparkleGuids.Length > 0)
+            {
+                Sprite s = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(UnityEditor.AssetDatabase.GUIDToAssetPath(sparkleGuids[0]));
+                if (whiteSparkleSprite == null) whiteSparkleSprite = s;
+                if (whiteStreakSprite == null) whiteStreakSprite = s;
+            }
+        }
+
+        if (completionBalloonSprites == null || completionBalloonSprites.Length == 0)
+        {
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:Sprite", new[] { "Assets/Sprites/CompletionFX" });
+            List<Sprite> list = new List<Sprite>();
+            foreach (string guid in guids)
+            {
+                Sprite s = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
+                if (s != null && s.name.ToLower().Contains("balloon")) list.Add(s);
+            }
+            if (list.Count > 0) completionBalloonSprites = list.ToArray();
+        }
+
+        if (completionConfettiSprites == null || completionConfettiSprites.Length == 0)
+        {
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:Sprite", new[] { "Assets/Sprites/CompletionFX" });
+            List<Sprite> list = new List<Sprite>();
+            foreach (string guid in guids)
+            {
+                Sprite s = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
+                if (s != null && s.name.ToLower().Contains("confetti")) list.Add(s);
+            }
+            if (list.Count > 0) completionConfettiSprites = list.ToArray();
+        }
+#endif
+    }
+
+    /// <summary>
+    /// Spawns a pop FX particle burst at the specified position.
+    /// </summary>
+    public void PlayPopFX(Vector2 position)
+    {
+        EnsureFXContainerOnTop();
+
+        if (starburstSprite != null || glowSprite != null)
+        {
+            SpawnStarburst(position, 0.45f);
+        }
+
+        Sprite particleSprite = sparkSprite != null ? sparkSprite : GetGeneratedSoftCircleSprite();
+        int count = Random.Range(16, 26);
+        for (int i = 0; i < count; i++)
+        {
+            float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            float speed = Random.Range(160f, 420f);
+            float size = Random.Range(24f, 60f);
+            Color color = GetRandomVibrantColor();
+
+            SpawnBurstParticle(position, dir, speed, size, color, Random.Range(0.45f, 0.8f));
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            float angle = ((float)i / 6f * 360f + Random.Range(-10f, 10f)) * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            SpawnVisibleFallbackSpark(position, dir, Random.Range(120f, 260f), Random.Range(20f, 40f), Random.Range(0.35f, 0.6f), particleSprite);
+        }
+    }
+
+    /// <summary>
+    /// Triggers celebratory FX (confetti, balloons, screen wash flash, sparkles) at center position.
+    /// </summary>
+    public void PlayCompletionCelebration(Vector2 centerPosition)
+    {
+        EnsureFXContainerOnTop();
+        if (enableGuaranteedCompletionFlash)
+        {
+            SpawnGuaranteedCompletionFlash(centerPosition, true, Mathf.Max(2.05f, referenceCompletionDuration));
+        }
+
+        StartCoroutine(TriggerCompletionBurstRoutine(centerPosition));
     }
 
     private void SpawnLightRays(Vector2 position, float duration, float sizeMultiplier = 1f)

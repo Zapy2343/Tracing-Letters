@@ -1,95 +1,64 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
 /// <summary>
-/// Spawns image-filled bubbles at random times and positions, then lets them rise until popped or despawned.
+/// Spawns letter-filled bubbles at random positions. Correct letters pop and score; wrong letters keep rising.
 /// </summary>
 public class BubblePopGameManager : MonoBehaviour
 {
     [Header("Scene References")]
-    [Tooltip("Canvas that contains the bubble play area. Auto-detected if empty.")]
     [SerializeField] private Canvas targetCanvas;
-
-    [Tooltip("RectTransform that defines where bubbles spawn and travel. Uses the canvas rect if empty.")]
     [SerializeField] private RectTransform playArea;
-
-    [Tooltip("Optional prefab with BubblePopBubble, Image, Button, and child content Image. If empty, one is built at runtime.")]
     [SerializeField] private BubblePopBubble bubblePrefab;
 
-    [Header("Designer Sprites")]
-    [Tooltip("Use the soft generated bubble image. Disable this to use Bubble Sprite instead.")]
+    [Header("Bubble Visuals")]
     [SerializeField] private bool useGeneratedBubbleSprite = true;
-
-    [Tooltip("Outer bubble sprite used when Use Generated Bubble Sprite is disabled. If empty, a generated bubble is used.")]
     [SerializeField] private Sprite bubbleSprite;
-
-    [Tooltip("Optional sprite shown during the pop animation.")]
     [SerializeField] private Sprite poppedBubbleSprite;
-
-    [Tooltip("Animator Controller played when a bubble pops. Auto-loads the Burst controller in the Unity Editor if empty.")]
     [SerializeField] private RuntimeAnimatorController popAnimatorController;
 
-    [Tooltip("Images randomly placed inside bubbles.")]
+    [Header("Level Data")]
+    [Tooltip("Sprite list representing the level content images inside bubbles.")]
     [SerializeField] private List<Sprite> contentSprites = new List<Sprite>();
+    [SerializeField] private int currentLevelIndex;
 
-    [Tooltip("In the Unity Editor, fill Content Sprites from the project folder below when the list is empty.")]
+    [Tooltip("Chance that a spawned bubble is the correct current level image.")]
+    [Range(0.05f, 1f)]
+    [SerializeField] private float correctBubbleSpawnChance = 0.45f;
+
+    [Header("Editor Sprite Fallback")]
     [SerializeField] private bool autoLoadContentSpritesInEditor = true;
-
-    [Tooltip("Editor-only folder used to auto-fill Content Sprites for quick designer setup.")]
     [SerializeField] private string editorContentSpritesFolder = "Assets/Sprites/Images";
 
     [Header("Spawn Timing")]
-    [Tooltip("Start spawning as soon as this object becomes active.")]
     [SerializeField] private bool autoStart = true;
-
-    [Tooltip("Random seconds between each bubble spawn.")]
     [SerializeField] private Vector2 spawnIntervalRange = new Vector2(0.45f, 1.25f);
-
-    [Tooltip("Maximum number of live bubbles allowed at once.")]
     [SerializeField] private int maxActiveBubbles = 8;
 
     [Header("Object Pool")]
-    [Tooltip("Number of bubbles created up front and reused during play.")]
     [SerializeField] private int initialPoolSize = 12;
-
-    [Tooltip("Allow the pool to create more bubbles if all pooled bubbles are in use.")]
     [SerializeField] private bool allowPoolGrowth = true;
-
-    [Tooltip("Optional parent for inactive pooled bubbles. Created automatically if empty.")]
     [SerializeField] private RectTransform poolContainer;
 
     [Header("Bubble Layout")]
-    [Tooltip("Random bubble size in canvas units.")]
     [SerializeField] private Vector2 bubbleSizeRange = new Vector2(110f, 180f);
-
-    [Tooltip("How far below the play area bubbles begin.")]
     [SerializeField] private float spawnPadding = 90f;
-
-    [Tooltip("How far above the play area bubbles can travel before being destroyed.")]
     [SerializeField] private float despawnPadding = 120f;
-
-    [Tooltip("Minimum horizontal distance from other low/just-spawned bubbles.")]
     [SerializeField] private float minimumSpawnSpacing = 140f;
-
-    [Tooltip("How many random positions to try before accepting the best available spawn point.")]
     [SerializeField] private int spawnPositionAttempts = 12;
-
-    [Tooltip("Only bubbles below this height from the bottom are considered for spawn spacing.")]
     [SerializeField] private float spawnSpacingCheckHeight = 260f;
 
     [Range(0.1f, 0.95f)]
-    [Tooltip("How much of the bubble size the inside image fills.")]
-    [SerializeField] private float contentFillPercent = 0.46f;
+    [SerializeField] private float contentFillPercent = 0.48f;
 
     [Header("Bubble Colors")]
-    [Tooltip("Randomly tint spawned bubble shells using the palette below.")]
     [SerializeField] private bool useRandomBubbleColors = true;
-
-    [Tooltip("Colors randomly applied to the outer bubble shell. Alpha controls bubble opacity.")]
-    [SerializeField] private List<Color> bubbleShellColors = new List<Color>
+    [SerializeField]
+    private List<Color> bubbleShellColors = new List<Color>
     {
         new Color(0.62f, 0.87f, 1f, 0.86f),
         new Color(0.78f, 0.68f, 1f, 0.86f),
@@ -101,39 +70,60 @@ public class BubblePopGameManager : MonoBehaviour
     };
 
     [Header("Motion")]
-    [Tooltip("Random upward speed in canvas units per second.")]
     [SerializeField] private Vector2 riseSpeedRange = new Vector2(90f, 175f);
-
-    [Tooltip("Side-to-side drift strength while rising.")]
     [SerializeField] private Vector2 wiggleAmplitudeRange = new Vector2(15f, 45f);
-
-    [Tooltip("Side-to-side drift speed while rising.")]
     [SerializeField] private Vector2 wiggleFrequencyRange = new Vector2(1.25f, 2.75f);
+
+    [Header("Sounds")]
+    [SerializeField] private AudioClip bubblePopClip;
+    [SerializeField] private AudioClip wrongBubbleClip;
+    [SerializeField] private AudioSource sfxSource;
 
     [Header("Score")]
     [SerializeField] private int score;
     [SerializeField] private UnityEvent<int> onScoreChanged;
     [SerializeField] private UnityEvent<BubblePopBubble> onBubblePopped;
 
+    [Header("Current Level Display")]
+    [SerializeField] private TMP_Text currentLevelText;
+    [SerializeField] private Image currentLevelImage;
+    [SerializeField] private float currentLevelTopOffset = 150f;
+    [SerializeField] private Vector2 currentLevelImageSize = new Vector2(150f, 150f);
+    [field: SerializeField] public BubblePopFXManager bubblePopFXManager { get; private set; }
+
     private readonly List<BubblePopBubble> activeBubbles = new List<BubblePopBubble>();
     private readonly Queue<BubblePopBubble> pooledBubbles = new Queue<BubblePopBubble>();
     private readonly HashSet<BubblePopBubble> pooledBubbleSet = new HashSet<BubblePopBubble>();
+    private readonly HashSet<BubblePopBubble> correctBubbles = new HashSet<BubblePopBubble>();
     private Coroutine spawnRoutine;
     private Sprite generatedBubbleSprite;
 
     public int Score => score;
     public bool IsSpawning => spawnRoutine != null;
+    public int ContentSpriteCount => contentSprites != null ? contentSprites.Count : 0;
+    public int LevelCount => ContentSpriteCount;
+    public int CurrentLevelIndex => Mathf.Clamp(currentLevelIndex, 0, Mathf.Max(0, LevelCount - 1));
+    public Sprite CurrentLevelSprite => GetContentSpriteForLevelIndex(CurrentLevelIndex);
 
     private void Awake()
     {
         ResolveReferences();
+        LoadContentSpritesFromProviderIfEmpty();
         LoadContentSpritesIfEmpty();
         LoadPopAnimatorIfEmpty();
+        LoadAudioClipsIfEmpty();
+        currentLevelIndex = BubblePopLevelMenu.GetSelectedLevelIndex();
+        RefreshCurrentLevelDisplay();
         InitializePool();
     }
 
     private void OnEnable()
     {
+        if (GlobalSoundManager.Instance != null)
+        {
+            GlobalSoundManager.Instance.SetMusicDucked(true, 0.5f);
+        }
+
         if (autoStart)
         {
             StartGame();
@@ -142,6 +132,11 @@ public class BubblePopGameManager : MonoBehaviour
 
     private void OnDisable()
     {
+        if (GlobalSoundManager.Instance != null)
+        {
+            GlobalSoundManager.Instance.SetMusicDucked(false);
+        }
+
         StopGame();
     }
 
@@ -170,6 +165,20 @@ public class BubblePopGameManager : MonoBehaviour
         onScoreChanged?.Invoke(score);
     }
 
+    public void BeginLevel(int levelIndex)
+    {
+        currentLevelIndex = Mathf.Clamp(levelIndex, 0, Mathf.Max(0, LevelCount - 1));
+        PlayerPrefs.SetInt(BubblePopLevelMenu.SelectedLevelIndexKey, currentLevelIndex);
+        PlayerPrefs.SetString(BubblePopLevelMenu.SelectedLevelImageNameKey, CurrentLevelSprite != null ? CurrentLevelSprite.name : string.Empty);
+        PlayerPrefs.Save();
+
+        StopGame();
+        ClearActiveBubbles();
+        ResetScore();
+        RefreshCurrentLevelDisplay();
+        StartGame();
+    }
+
     [ContextMenu("Clear Active Bubbles")]
     public void ClearActiveBubbles()
     {
@@ -182,23 +191,25 @@ public class BubblePopGameManager : MonoBehaviour
         }
 
         activeBubbles.Clear();
+        correctBubbles.Clear();
     }
 
     public void SetContentSprites(IList<Sprite> sprites)
     {
         contentSprites.Clear();
-        if (sprites == null)
+        if (sprites != null)
         {
-            return;
-        }
-
-        for (int i = 0; i < sprites.Count; i++)
-        {
-            if (sprites[i] != null)
+            for (int i = 0; i < sprites.Count; i++)
             {
-                contentSprites.Add(sprites[i]);
+                if (sprites[i] != null)
+                {
+                    contentSprites.Add(sprites[i]);
+                }
             }
         }
+
+        currentLevelIndex = Mathf.Clamp(currentLevelIndex, 0, Mathf.Max(0, LevelCount - 1));
+        RefreshCurrentLevelDisplay();
     }
 
     private IEnumerator SpawnLoop()
@@ -243,11 +254,11 @@ public class BubblePopGameManager : MonoBehaviour
         bubbleRect.anchoredPosition = GetRandomSpawnPosition(size);
         bubbleRect.SetAsLastSibling();
 
-        Sprite selectedContent = GetRandomContentSprite();
+        Sprite contentSprite = PickBubbleSprite(out bool isCorrectBubble);
         bubble.Configure(
             playArea,
             GetBubbleSprite(),
-            selectedContent,
+            contentSprite,
             poppedBubbleSprite,
             popAnimatorController,
             GetRandomFromRange(riseSpeedRange),
@@ -255,9 +266,20 @@ public class BubblePopGameManager : MonoBehaviour
             GetRandomFromRange(wiggleFrequencyRange),
             despawnPadding,
             HandleBubblePopped,
-            ReturnBubbleToPool);
+            ReturnBubbleToPool,
+            candidate => correctBubbles.Contains(candidate),
+            HandleWrongBubbleTapped);
         ApplyBubbleShellColor(bubble);
         bubble.SetContentFill(contentFillPercent);
+
+        if (isCorrectBubble)
+        {
+            correctBubbles.Add(bubble);
+        }
+        else
+        {
+            correctBubbles.Remove(bubble);
+        }
 
         activeBubbles.Add(bubble);
         return bubble;
@@ -271,12 +293,10 @@ public class BubblePopGameManager : MonoBehaviour
         }
 
         Image shellImage = bubble.GetComponent<Image>();
-        if (shellImage == null)
+        if (shellImage != null)
         {
-            return;
+            shellImage.color = bubbleShellColors[Random.Range(0, bubbleShellColors.Count)];
         }
-
-        shellImage.color = bubbleShellColors[Random.Range(0, bubbleShellColors.Count)];
     }
 
     private void InitializePool()
@@ -316,12 +336,7 @@ public class BubblePopGameManager : MonoBehaviour
             }
         }
 
-        if (!allowPoolGrowth)
-        {
-            return null;
-        }
-
-        return CreateBubbleInstance(poolContainer != null ? poolContainer : playArea);
+        return allowPoolGrowth ? CreateBubbleInstance(poolContainer != null ? poolContainer : playArea) : null;
     }
 
     private BubblePopBubble CreateBubbleInstance(RectTransform parent)
@@ -336,17 +351,18 @@ public class BubblePopGameManager : MonoBehaviour
 
     private void ReturnBubbleToPool(BubblePopBubble bubble)
     {
-        if (bubble == null) return;
-        if (pooledBubbleSet.Contains(bubble)) return;
+        if (bubble == null || pooledBubbleSet.Contains(bubble)) return;
 
         activeBubbles.Remove(bubble);
+        correctBubbles.Remove(bubble);
 
-        if (poolContainer != null)
+        bubble.gameObject.SetActive(false);
+
+        if (poolContainer != null && gameObject.activeInHierarchy && poolContainer.gameObject.activeInHierarchy)
         {
             bubble.transform.SetParent(poolContainer, false);
         }
 
-        bubble.gameObject.SetActive(false);
         pooledBubbles.Enqueue(bubble);
         pooledBubbleSet.Add(bubble);
     }
@@ -371,21 +387,24 @@ public class BubblePopGameManager : MonoBehaviour
         Button button = bubbleObject.GetComponent<Button>();
         button.transition = Selectable.Transition.None;
 
-        GameObject contentObject = new GameObject("Bubble Image", typeof(RectTransform), typeof(Image));
+        GameObject contentObject = new GameObject("Bubble Content Image", typeof(RectTransform), typeof(Image));
         contentObject.transform.SetParent(bubbleObject.transform, false);
 
         RectTransform contentRect = contentObject.GetComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0.5f, 0.5f);
-        contentRect.anchorMax = new Vector2(0.5f, 0.5f);
+        contentRect.anchorMin = new Vector2(0.08f, 0.08f);
+        contentRect.anchorMax = new Vector2(0.92f, 0.92f);
         contentRect.pivot = new Vector2(0.5f, 0.5f);
-        contentRect.sizeDelta = Vector2.zero;
+        contentRect.offsetMin = Vector2.zero;
+        contentRect.offsetMax = Vector2.zero;
+        contentRect.anchoredPosition = Vector2.zero;
 
-        Image contentImage = contentObject.GetComponent<Image>();
-        contentImage.preserveAspect = true;
-        contentImage.raycastTarget = false;
+        Image insideImage = contentObject.GetComponent<Image>();
+        insideImage.preserveAspect = true;
+        insideImage.raycastTarget = false;
+        insideImage.color = Color.white;
 
         BubblePopBubble bubble = bubbleObject.GetComponent<BubblePopBubble>();
-        bubble.BindReferences(shellImage, contentImage, button);
+        bubble.BindReferences(shellImage, insideImage, button);
         bubble.SetContentFill(contentFillPercent);
 
         return bubble;
@@ -440,21 +459,128 @@ public class BubblePopGameManager : MonoBehaviour
             RectTransform bubbleRect = bubble.GetComponent<RectTransform>();
             if (bubbleRect == null || bubbleRect.anchoredPosition.y > bottomLimit) continue;
 
-            float distance = Mathf.Abs(candidateX - bubbleRect.anchoredPosition.x);
-            closestDistance = Mathf.Min(closestDistance, distance);
+            closestDistance = Mathf.Min(closestDistance, Mathf.Abs(candidateX - bubbleRect.anchoredPosition.x));
         }
 
         return closestDistance;
     }
 
-    private Sprite GetRandomContentSprite()
+    private Sprite PickBubbleSprite(out bool isCorrectBubble)
+    {
+        Sprite correctSprite = CurrentLevelSprite;
+        isCorrectBubble = correctSprite != null;
+
+        if (correctSprite == null)
+        {
+            return null;
+        }
+
+        if (contentSprites == null || contentSprites.Count <= 1 || Random.value <= correctBubbleSpawnChance)
+        {
+            return correctSprite;
+        }
+
+        Sprite wrongSprite = GetRandomWrongSprite(correctSprite);
+        if (wrongSprite != null)
+        {
+            isCorrectBubble = false;
+            return wrongSprite;
+        }
+
+        return correctSprite;
+    }
+
+    private Sprite GetRandomWrongSprite(Sprite correctSprite)
     {
         if (contentSprites == null || contentSprites.Count == 0)
         {
             return null;
         }
 
-        return contentSprites[Random.Range(0, contentSprites.Count)];
+        for (int i = 0; i < 12; i++)
+        {
+            Sprite candidate = contentSprites[Random.Range(0, contentSprites.Count)];
+            if (candidate != null && candidate != correctSprite)
+            {
+                return candidate;
+            }
+        }
+
+        for (int i = 0; i < contentSprites.Count; i++)
+        {
+            if (contentSprites[i] != null && contentSprites[i] != correctSprite)
+            {
+                return contentSprites[i];
+            }
+        }
+
+        return null;
+    }
+
+    public Sprite GetContentSpriteForLevelIndex(int levelIndex)
+    {
+        if (contentSprites == null || contentSprites.Count == 0)
+        {
+            return null;
+        }
+
+        int safeIndex = Mathf.Clamp(levelIndex, 0, contentSprites.Count - 1);
+        return contentSprites[safeIndex];
+    }
+
+    private void RefreshCurrentLevelDisplay()
+    {
+        ResolveReferences();
+        EnsureCurrentLevelDisplay();
+
+        Sprite sprite = CurrentLevelSprite;
+
+        if (currentLevelImage != null)
+        {
+            currentLevelImage.sprite = sprite;
+            currentLevelImage.enabled = sprite != null;
+            currentLevelImage.gameObject.SetActive(sprite != null);
+            currentLevelImage.preserveAspect = true;
+        }
+
+        if (currentLevelText != null)
+        {
+            currentLevelText.enabled = false;
+            currentLevelText.gameObject.SetActive(false);
+        }
+    }
+
+    private void EnsureCurrentLevelDisplay()
+    {
+        if (currentLevelImage != null || targetCanvas == null)
+        {
+            return;
+        }
+
+        GameObject displayObject = new GameObject("Current Level Image", typeof(RectTransform), typeof(Image));
+        displayObject.transform.SetParent(targetCanvas.transform, false);
+
+        RectTransform rect = displayObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0f, -Mathf.Max(80f, currentLevelTopOffset));
+        rect.sizeDelta = currentLevelImageSize;
+        rect.SetAsLastSibling();
+
+        currentLevelImage = displayObject.GetComponent<Image>();
+        currentLevelImage.preserveAspect = true;
+        currentLevelImage.raycastTarget = false;
+    }
+
+    private void HandleWrongBubbleTapped(BubblePopBubble bubble)
+    {
+        PlaySfx(wrongBubbleClip);
+
+        if (bubble != null)
+        {
+            bubble.PlayRejectedTapFeedback();
+        }
     }
 
     private float GetRandomFromRange(Vector2 range)
@@ -535,6 +661,26 @@ public class BubblePopGameManager : MonoBehaviour
         }
     }
 
+    private void LoadContentSpritesFromProviderIfEmpty()
+    {
+        if (contentSprites != null && contentSprites.Count > 0) return;
+
+        BubblePopSelectedLevelImageProvider provider = GetComponent<BubblePopSelectedLevelImageProvider>();
+        if (provider == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            provider = FindFirstObjectByType<BubblePopSelectedLevelImageProvider>();
+#else
+            provider = FindObjectOfType<BubblePopSelectedLevelImageProvider>();
+#endif
+        }
+
+        if (provider != null && provider.LevelImages != null && provider.LevelImages.Count > 0)
+        {
+            SetContentSprites(provider.LevelImages);
+        }
+    }
+
     private void LoadContentSpritesIfEmpty()
     {
 #if UNITY_EDITOR
@@ -575,12 +721,71 @@ public class BubblePopGameManager : MonoBehaviour
 #endif
     }
 
+    private void LoadAudioClipsIfEmpty()
+    {
+#if UNITY_EDITOR
+        if (bubblePopClip == null)
+        {
+            bubblePopClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Sounds/SFX/Popin.mp3");
+        }
+
+        if (wrongBubbleClip == null)
+        {
+            wrongBubbleClip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Sounds/notification.mp3");
+        }
+#endif
+
+        if (sfxSource == null)
+        {
+            sfxSource = GetComponent<AudioSource>();
+        }
+
+        if (sfxSource == null)
+        {
+            sfxSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        sfxSource.playOnAwake = false;
+        sfxSource.loop = false;
+    }
+
     private void HandleBubblePopped(BubblePopBubble bubble)
     {
         activeBubbles.Remove(bubble);
+        correctBubbles.Remove(bubble);
+        PlaySfx(bubblePopClip);
         score++;
+
+        if (bubble != null)
+        {
+            RectTransform bubbleRect = bubble.GetComponent<RectTransform>();
+            if (bubbleRect != null)
+            {
+                if (bubblePopFXManager != null)
+                {
+                    bubblePopFXManager.PlayPopFX(bubbleRect.anchoredPosition);
+                }
+            }
+        }
+
         onBubblePopped?.Invoke(bubble);
         onScoreChanged?.Invoke(score);
+    }
+
+    private void PlaySfx(AudioClip clip)
+    {
+        if (clip == null || sfxSource == null)
+        {
+            return;
+        }
+
+        if (GlobalSoundManager.Instance != null)
+        {
+            GlobalSoundManager.Instance.PlaySfx(sfxSource, clip);
+            return;
+        }
+
+        sfxSource.PlayOneShot(clip);
     }
 
     private void CleanupBubbleList()
@@ -608,6 +813,11 @@ public class BubblePopGameManager : MonoBehaviour
         riseSpeedRange.x = Mathf.Max(1f, riseSpeedRange.x);
         riseSpeedRange.y = Mathf.Max(1f, riseSpeedRange.y);
         contentFillPercent = Mathf.Clamp(contentFillPercent, 0.1f, 0.95f);
+        currentLevelIndex = Mathf.Max(0, currentLevelIndex);
+        correctBubbleSpawnChance = Mathf.Clamp(correctBubbleSpawnChance, 0.05f, 1f);
+        currentLevelTopOffset = Mathf.Max(80f, currentLevelTopOffset);
+        currentLevelImageSize.x = Mathf.Max(48f, currentLevelImageSize.x);
+        currentLevelImageSize.y = Mathf.Max(48f, currentLevelImageSize.y);
 
         if (bubbleShellColors == null)
         {

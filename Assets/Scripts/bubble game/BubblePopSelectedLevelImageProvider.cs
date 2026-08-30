@@ -7,6 +7,8 @@ public class BubblePopSelectedLevelImageProvider : MonoBehaviour
     [SerializeField] private List<Sprite> levelImages = new List<Sprite>();
     [SerializeField] private bool startGameAfterApply = false;
 
+    public List<Sprite> LevelImages => levelImages;
+
     private bool hasStartedGame;
 
     private void Awake()
@@ -38,12 +40,11 @@ public class BubblePopSelectedLevelImageProvider : MonoBehaviour
             return;
         }
 
-        int selectedLevelIndex = BubblePopLevelMenu.GetSelectedLevelIndex();
-        if (selectedLevelIndex < 0 || selectedLevelIndex >= levelImages.Count || levelImages[selectedLevelIndex] == null)
+        if (levelImages != null && levelImages.Count > 0)
         {
-            return;
+            gameManager.SetContentSprites(levelImages);
         }
 
-        gameManager.SetContentSprites(new[] { levelImages[selectedLevelIndex] });
+        gameManager.BeginLevel(BubblePopLevelMenu.GetSelectedLevelIndex());
     }
 }

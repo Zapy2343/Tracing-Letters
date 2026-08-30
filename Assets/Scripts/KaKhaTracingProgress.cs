@@ -19,6 +19,15 @@ public static class KaKhaTracingProgress
         return PlayerPrefs.GetInt(TotalScoreKey, 0);
     }
 
+    public static int GetTotalBubblePopScore()
+    {
+        int total = 0;
+        for (int i = 0; i < 36; i++)
+        {
+            total += PlayerPrefs.GetInt(BubblePopLevelMenu.BestScorePrefix + i, 0);
+        }
+        return total;
+    }
     public static bool IsLetterCompleted(int letterNumber)
     {
         return letterNumber > 0 && PlayerPrefs.GetInt(CompletedLetterPrefix + letterNumber, 0) == 1;

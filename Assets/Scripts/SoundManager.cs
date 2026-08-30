@@ -39,7 +39,9 @@ public class SoundManager : MonoBehaviour
     [SerializeField] private bool persistAcrossScenes = true;
 
     // Public properties for checking status
-    public bool IsMuted { get; private set; }
+    public bool IsMuted => IsBGMMuted && IsSFXMuted;
+    public bool IsBGMMuted { get; private set; }
+    public bool IsSFXMuted { get; private set; }
     public float BGMVolume => bgmVolume;
     public float SFXVolume => sfxVolume;
     public bool IsBGMPlaying => bgmSource != null && bgmSource.isPlaying;
@@ -182,7 +184,7 @@ public class SoundManager : MonoBehaviour
     /// </summary>
     public void PlaySFX(AudioClip clip, float volumeScale = 1f)
     {
-        if (clip == null || IsMuted) return;
+        if (clip == null || IsSFXMuted) return;
 
         if (sfxSource == null)
         {
@@ -208,6 +210,20 @@ public class SoundManager : MonoBehaviour
 
     #region Mute & Master Controls
 
+    public void SetBGMMuted(bool mute)
+    {
+        IsBGMMuted = mute;
+        if (bgmSource != null)
+        {
+            bgmSource.volume = IsBGMMuted ? 0f : bgmVolume;
+        }
+    }
+
+    public void SetSFXMuted(bool mute)
+    {
+        IsSFXMuted = mute;
+    }
+
     /// <summary>
     /// Toggles mute state for both BGM and SFX.
     /// </summary>
@@ -221,12 +237,8 @@ public class SoundManager : MonoBehaviour
     /// </summary>
     public void SetMute(bool mute)
     {
-        IsMuted = mute;
-
-        if (bgmSource != null)
-        {
-            bgmSource.volume = IsMuted ? 0f : bgmVolume;
-        }
+        SetBGMMuted(mute);
+        SetSFXMuted(mute);
     }
 
     #endregion

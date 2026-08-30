@@ -80,7 +80,22 @@ public class TracingBubbleChoiceGame : MonoBehaviour
     [Header("Score & Progress")]
     [SerializeField] private int scorePerCorrectBubble = 10;
     [SerializeField] private bool advanceToNextLetterAfterCorrect = true;
-    [SerializeField] private float nextLetterDelay = 0.65f;
+
+    [Header("Correct Answer Showcase")]
+    [Tooltip("If true, displays the correct image big in the center of the screen before advancing to the next letter.")]
+    [SerializeField] private bool showBigCorrectImageInCenter = true;
+
+    [Tooltip("Size of the big correct image in the center of the screen.")]
+    [SerializeField] private Vector2 bigImageDisplaySize = new Vector2(480f, 480f);
+
+    [Tooltip("How many seconds the big correct image stays centered on screen before changing letters.")]
+    [SerializeField] private float bigImageDisplayDuration = 2.0f;
+
+    [Tooltip("Optional pre-created Image UI component for the center image. Built at runtime if empty.")]
+    [SerializeField] private Image customBigImageDisplay;
+
+    [Tooltip("Optional background dim overlay image.")]
+    [SerializeField] private GameObject customBigImageOverlay;
 
     [Header("Events")]
     [SerializeField] private UnityEvent onCorrectBubbleSelected;
@@ -93,6 +108,9 @@ public class TracingBubbleChoiceGame : MonoBehaviour
     private bool quizActive;
     private bool quizSolved;
     private Coroutine pendingShowRoutine;
+
+    private GameObject runtimeOverlayObject;
+    private Image runtimeBigImageComponent;
 
     private struct BubbleChoiceData
     {
@@ -452,11 +470,13 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         soundManager?.PlayCorrectBubble();
         RewardCurrentLetter();
         onCorrectBubbleSelected?.Invoke();
+
+        Sprite correctSprite = activeCorrectSprite;
         RemoveOtherChoices(bubble);
 
         if (advanceToNextLetterAfterCorrect)
         {
-            StartCoroutine(AdvanceToNextLetterRoutine());
+            StartCoroutine(ShowBigCorrectImageAndAdvanceRoutine(correctSprite));
         }
     }
 
@@ -473,26 +493,153 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         KaKhaTracingProgress.CompleteLetter(currentLetterNumber, scorePerCorrectBubble, totalLetters);
     }
 
-    private IEnumerator AdvanceToNextLetterRoutine()
+    private IEnumerator ShowBigCorrectImageAndAdvanceRoutine(Sprite correctSprite)
     {
-        yield return new WaitForSecondsRealtime(Mathf.Max(0f, nextLetterDelay));
+        if (showBigCorrectImageInCenter && correctSprite != null)
+        {
+            EnsureBigImageOverlayCreated();
 
+            Image displayImage = customBigImageDisplay != null ? customBigImageDisplay : runtimeBigImageComponent;
+            GameObject overlayObj = customBigImageOverlay != null ? customBigImageOverlay : runtimeOverlayObject;
+
+            if (displayImage != null && overlayObj != null)
+            {
+                displayImage.sprite = correctSprite;
+                displayImage.preserveAspect = true;
+
+                RectTransform imgRect = displayImage.GetComponent<RectTransform>();
+                if (imgRect != null)
+                {
+                    imgRect.sizeDelta = bigImageDisplaySize;
+                    imgRect.localScale = Vector3.zero;
+                }
+
+                overlayObj.transform.SetAsLastSibling();
+                overlayObj.SetActive(true);
+
+                // Play celebration FX burst if FXManager exists
+                if (TracingFXManager.Instance != null)
+                {
+                    TracingFXManager.Instance.PlayPopFX(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
+                    TracingFXManager.Instance.PlayCompletionCelebration(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
+                }
+
+                // Instant elastic punch animation 0 -> 1.25 -> 1.0 (snappy 0.22s)
+                float animElapsed = 0f;
+                float animDuration = 0.22f;
+                while (animElapsed < animDuration)
+                {
+                    animElapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(animElapsed / animDuration);
+                    float scale = ElasticEaseOut(t);
+                    if (imgRect != null)
+                    {
+                        imgRect.localScale = new Vector3(scale, scale, 1f);
+                    }
+                    yield return null;
+                }
+
+                if (imgRect != null)
+                {
+                    imgRect.localScale = Vector3.one;
+                }
+
+                // Hold big image visible in center
+                yield return new WaitForSecondsRealtime(Mathf.Max(0.5f, bigImageDisplayDuration));
+
+                // Smooth shrink scale down 1.0 -> 0.0
+                animElapsed = 0f;
+                float shrinkDuration = 0.3f;
+                while (animElapsed < shrinkDuration)
+                {
+                    animElapsed += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(animElapsed / shrinkDuration);
+                    float scale = Mathf.Lerp(1.0f, 0.0f, t * t);
+                    if (imgRect != null)
+                    {
+                        imgRect.localScale = new Vector3(scale, scale, 1f);
+                    }
+                    yield return null;
+                }
+
+                overlayObj.SetActive(false);
+            }
+        }
+
+        PerformAdvanceToNextLetter();
+    }
+
+    private float ElasticEaseOut(float t)
+    {
+        if (t <= 0f) return 0f;
+        if (t >= 1f) return 1f;
+        return Mathf.Sin(t * Mathf.PI * 0.5f) * (1f + 0.25f * Mathf.Sin(t * Mathf.PI * 2.5f));
+    }
+
+    private void EnsureBigImageOverlayCreated()
+    {
+        if (customBigImageOverlay != null && customBigImageDisplay != null)
+        {
+            return;
+        }
+
+        if (runtimeOverlayObject != null && runtimeBigImageComponent != null)
+        {
+            return;
+        }
+
+        Canvas parentCanvasObj = targetCanvas != null ? targetCanvas : GetComponentInParent<Canvas>();
+        Transform parentTransform = parentCanvasObj != null ? parentCanvasObj.transform : transform;
+
+        runtimeOverlayObject = new GameObject("BigCorrectImageOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        runtimeOverlayObject.transform.SetParent(parentTransform, false);
+
+        RectTransform overlayRect = runtimeOverlayObject.GetComponent<RectTransform>();
+        overlayRect.anchorMin = Vector2.zero;
+        overlayRect.anchorMax = Vector2.one;
+        overlayRect.pivot = new Vector2(0.5f, 0.5f);
+        overlayRect.sizeDelta = Vector2.zero;
+        overlayRect.anchoredPosition = Vector2.zero;
+
+        Image overlayImage = runtimeOverlayObject.GetComponent<Image>();
+        overlayImage.color = new Color(0f, 0f, 0f, 0.55f);
+        overlayImage.raycastTarget = true;
+
+        GameObject imageContainer = new GameObject("BigCorrectImage", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        imageContainer.transform.SetParent(runtimeOverlayObject.transform, false);
+
+        RectTransform imgRect = imageContainer.GetComponent<RectTransform>();
+        imgRect.anchorMin = new Vector2(0.5f, 0.5f);
+        imgRect.anchorMax = new Vector2(0.5f, 0.5f);
+        imgRect.pivot = new Vector2(0.5f, 0.5f);
+        imgRect.sizeDelta = bigImageDisplaySize;
+        imgRect.anchoredPosition = Vector2.zero;
+
+        runtimeBigImageComponent = imageContainer.GetComponent<Image>();
+        runtimeBigImageComponent.preserveAspect = true;
+        runtimeBigImageComponent.raycastTarget = false;
+
+        runtimeOverlayObject.SetActive(false);
+    }
+
+    private void PerformAdvanceToNextLetter()
+    {
         if (letterSwitcher == null)
         {
-            yield break;
+            return;
         }
 
         int totalLetters = letterSwitcher.GetTotalCount();
         if (totalLetters <= 0)
         {
-            yield break;
+            return;
         }
 
         int currentLetterNumber = penDrawer != null ? penDrawer.CurrentLetterNumber : 1;
         int nextLetterNumber = Mathf.Min(currentLetterNumber + 1, totalLetters);
         if (nextLetterNumber == currentLetterNumber)
         {
-            yield break;
+            return;
         }
 
         PlayerPrefs.SetInt(KaKhaTracingProgress.SelectedTracingLetterNumberKey, nextLetterNumber);

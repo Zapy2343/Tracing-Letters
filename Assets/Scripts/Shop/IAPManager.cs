@@ -81,7 +81,7 @@ public class IAPManager : MonoBehaviour, IStoreListener
     // Ownership checks 
     public bool HasNoAds()
     {
-        return IsOwned(IAPProducts.NO_ADS);
+        return AdManager.HasStoredRemoveAdsPurchase() || IsOwned(IAPProducts.NO_ADS);
     }
     
     public bool IsOwned(string productId = null)
@@ -133,7 +133,7 @@ public class IAPManager : MonoBehaviour, IStoreListener
         switch (id)
         {
             case IAPProducts.NO_ADS:
-                SetNoAds(true);
+                SetNoAds(true, id);
                 break;
         }
 
@@ -151,10 +151,17 @@ public class IAPManager : MonoBehaviour, IStoreListener
 
     private void SetNoAds(bool value)
     {
+        SetNoAds(value, IAPProducts.NO_ADS);
+    }
+
+    private void SetNoAds(bool value, string productId)
+    {
         if (AdManager.Instance != null)
         {
-            AdManager.Instance.SetRemoveAdsPurchased(value);
+            AdManager.Instance.SetRemoveAdsPurchased(value, productId);
         }
+
+        MainScreenAdUiController.RefreshCurrentMainScreen();
 
         if (purchaseSuccessPanel != null)
         {

@@ -139,6 +139,12 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
         isLoading = true;
         HideHandHint();
         SetButtonAlpha(1f);
+
+        if (targetSceneName == "MainScreen" && AdManager.Instance != null)
+        {
+            AdManager.Instance.ShowInterstitialOnNextMainScreen();
+        }
+
         SmoothSceneLoader.LoadScene(targetSceneName);
     }
 

@@ -961,29 +961,77 @@ public class PenDrawer : MonoBehaviour
             return true;
         }
 
-        float startTolerance = Mathf.Max(sequentialStartTolerance, penRadius);
+        float startTolerance = Mathf.Max(sequentialStartTolerance, penRadius * 1.5f);
         if (currentUILine == null)
         {
             return Vector2.Distance(localPoint, activeSequentialPathLocal[0]) <= startTolerance;
         }
 
-        nextSequentialPointIndex = Mathf.Clamp(nextSequentialPointIndex, 1, activeSequentialPathLocal.Count - 1);
-        Vector2 from = activeSequentialPathLocal[nextSequentialPointIndex - 1];
-        Vector2 to = activeSequentialPathLocal[nextSequentialPointIndex];
-        float pathTolerance = Mathf.Max(sequentialPathTolerance, penRadius);
-        bool isOnCurrentSegment = IsPointNearSegment(localPoint, from, to, pathTolerance);
+        float pathTolerance = Mathf.Max(sequentialPathTolerance, penRadius * 2.5f);
+        int pathCount = activeSequentialPathLocal.Count;
 
-        if (!isOnCurrentSegment)
+        nextSequentialPointIndex = Mathf.Clamp(nextSequentialPointIndex, 1, pathCount - 1);
+
+        int bestSegmentIndex = -1;
+        float minDistanceToSegment = float.MaxValue;
+
+        int startIndex = Mathf.Max(1, nextSequentialPointIndex - 1);
+        int endIndex = Mathf.Min(pathCount - 1, nextSequentialPointIndex + 3);
+
+        for (int i = startIndex; i <= endIndex; i++)
+        {
+            Vector2 segA = activeSequentialPathLocal[i - 1];
+            Vector2 segB = activeSequentialPathLocal[i];
+            float dist = DistanceToSegment(localPoint, segA, segB);
+            if (dist <= pathTolerance && dist < minDistanceToSegment)
+            {
+                minDistanceToSegment = dist;
+                bestSegmentIndex = i;
+            }
+        }
+
+        if (bestSegmentIndex == -1)
+        {
+            for (int i = 1; i < pathCount; i++)
+            {
+                Vector2 segA = activeSequentialPathLocal[i - 1];
+                Vector2 segB = activeSequentialPathLocal[i];
+                float dist = DistanceToSegment(localPoint, segA, segB);
+                if (dist <= pathTolerance && dist < minDistanceToSegment)
+                {
+                    minDistanceToSegment = dist;
+                    bestSegmentIndex = i;
+                }
+            }
+        }
+
+        if (bestSegmentIndex == -1)
         {
             return false;
         }
 
-        if (advanceSequentialPath && Vector2.Distance(localPoint, to) <= pathTolerance)
+        if (advanceSequentialPath && bestSegmentIndex >= nextSequentialPointIndex)
         {
-            nextSequentialPointIndex = Mathf.Min(nextSequentialPointIndex + 1, activeSequentialPathLocal.Count - 1);
+            nextSequentialPointIndex = bestSegmentIndex;
+            if (nextSequentialPointIndex < pathCount - 1 &&
+                Vector2.Distance(localPoint, activeSequentialPathLocal[nextSequentialPointIndex]) <= pathTolerance * 0.75f)
+            {
+                nextSequentialPointIndex++;
+            }
         }
 
         return true;
+    }
+
+    private float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        float sqrLen = ab.sqrMagnitude;
+        if (sqrLen == 0f) return Vector2.Distance(p, a);
+
+        float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / sqrLen);
+        Vector2 projection = a + t * ab;
+        return Vector2.Distance(p, projection);
     }
 
     private bool TryGetActiveSequentialPath(List<Vector2> outputPath)
@@ -1082,19 +1130,57 @@ public class PenDrawer : MonoBehaviour
 
     private bool IsLocalPointInsideSprite(Vector2 localPoint, RectTransform targetRect, Sprite sprite, bool useSampleFallback)
     {
-        if (!targetRect.rect.Contains(localPoint))
+        if (sprite == null)
         {
-            return useSampleFallback && IsNearSamplePoint(localPoint);
+            return true;
         }
 
-        if (sprite == null || sprite.texture == null)
+        // Priority 1: Check if touch point is near active hint path or generated sample points
+        if (IsNearHintPathPoint(localPoint) || IsNearSamplePoint(localPoint))
+        {
+            return true;
+        }
+
+        if (!targetRect.rect.Contains(localPoint))
+        {
+            return false;
+        }
+
+        Texture2D texture = sprite.texture;
+        if (texture == null)
         {
             return true;
         }
 
         Rect rect = targetRect.rect;
+        Image image = revealTargetGraphic as Image;
+        if (image != null && image.preserveAspect && sprite.rect.width > 0 && sprite.rect.height > 0)
+        {
+            float rectAspect = rect.width / Mathf.Max(1f, rect.height);
+            float spriteAspect = sprite.rect.width / Mathf.Max(1f, sprite.rect.height);
+            if (rectAspect > spriteAspect)
+            {
+                float newWidth = rect.height * spriteAspect;
+                float inset = (rect.width - newWidth) * 0.5f;
+                rect.xMin += inset;
+                rect.xMax -= inset;
+            }
+            else
+            {
+                float newHeight = rect.width / spriteAspect;
+                float inset = (rect.height - newHeight) * 0.5f;
+                rect.yMin += inset;
+                rect.yMax -= inset;
+            }
+        }
+
         float u = Mathf.InverseLerp(rect.xMin, rect.xMax, localPoint.x);
         float v = Mathf.InverseLerp(rect.yMin, rect.yMax, localPoint.y);
+
+        if (u < 0f || u > 1f || v < 0f || v > 1f)
+        {
+            return false;
+        }
 
         Rect spriteRect = sprite.rect;
         int px = Mathf.Clamp(Mathf.FloorToInt(spriteRect.x + u * spriteRect.width), (int)spriteRect.xMin, (int)spriteRect.xMax - 1);
@@ -1102,17 +1188,17 @@ public class PenDrawer : MonoBehaviour
 
         try
         {
-            if (sprite.texture.GetPixel(px, py).a > 0.08f)
+            if (texture.GetPixel(px, py).a > 0.04f)
             {
                 return true;
             }
         }
         catch (UnityException)
         {
-            return !useSampleFallback || IsNearSamplePoint(localPoint);
+            return true;
         }
 
-        return useSampleFallback && IsNearSamplePoint(localPoint);
+        return false;
     }
 
     private bool IsNearSamplePoint(Vector2 localPoint)
@@ -1129,12 +1215,31 @@ public class PenDrawer : MonoBehaviour
             gridSpacing = Mathf.Max(rect.width, rect.height) / sampleGridResolution;
         }
 
-        float tolerance = Mathf.Max(letterBoundaryTolerance, gridSpacing * 1.5f, penRadius * 0.25f);
+        float tolerance = Mathf.Max(letterBoundaryTolerance * 3f, gridSpacing * 2.5f, penRadius * 1.5f);
         float sqrTolerance = tolerance * tolerance;
 
         for (int i = 0; i < targetSamplePoints.Count; i++)
         {
             if ((targetSamplePoints[i] - localPoint).sqrMagnitude <= sqrTolerance)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsNearHintPathPoint(Vector2 localPoint)
+    {
+        if (!TryGetActiveSequentialPath(activeSequentialPathLocal) || activeSequentialPathLocal.Count < 2)
+        {
+            return false;
+        }
+
+        float tolerance = Mathf.Max(sequentialPathTolerance, penRadius * 2.5f);
+        for (int i = 1; i < activeSequentialPathLocal.Count; i++)
+        {
+            if (DistanceToSegment(localPoint, activeSequentialPathLocal[i - 1], activeSequentialPathLocal[i]) <= tolerance)
             {
                 return true;
             }

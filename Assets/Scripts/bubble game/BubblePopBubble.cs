@@ -1,10 +1,11 @@
 using System;
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Handles one rising bubble, its contained image, click/tap pop input, and pop animation.
+/// Handles one rising bubble, its contained letter, click/tap pop input, and pop animation.
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 public class BubblePopBubble : MonoBehaviour
@@ -15,6 +16,9 @@ public class BubblePopBubble : MonoBehaviour
 
     [Tooltip("Image displayed inside the bubble.")]
     [SerializeField] private Image contentImage;
+
+    [Tooltip("Text displayed inside the bubble.")]
+    [SerializeField] private TMP_Text contentText;
 
     [Tooltip("Button used for click/tap popping. Auto-added by the manager when needed.")]
     [SerializeField] private Button popButton;
@@ -44,6 +48,7 @@ public class BubblePopBubble : MonoBehaviour
     private Func<BubblePopBubble, bool> canPopCallback;
     private Action<BubblePopBubble> rejectedPopCallback;
     private Coroutine popRoutine;
+    private Coroutine rejectedTapRoutine;
     private Color bubbleBaseColor = Color.white;
     private Color contentBaseColor = Color.white;
     private float riseSpeed;
@@ -62,20 +67,47 @@ public class BubblePopBubble : MonoBehaviour
         popButton = clickButton;
     }
 
+    public void BindReferences(Image shellImage, Image insideImage, TMP_Text letterText, Button clickButton)
+    {
+        bubbleImage = shellImage;
+        contentImage = insideImage;
+        contentText = letterText;
+        popButton = clickButton;
+    }
+
     public void SetContentFill(float fillPercent)
     {
-        ResolveImageReferences();
-        if (contentImage == null) return;
-
-        RectTransform contentRect = contentImage.GetComponent<RectTransform>();
-        if (contentRect == null) return;
+        ResolveContentReferences();
 
         float inset = (1f - Mathf.Clamp01(fillPercent)) * 0.5f;
-        contentRect.anchorMin = new Vector2(inset, inset);
-        contentRect.anchorMax = new Vector2(1f - inset, 1f - inset);
-        contentRect.offsetMin = Vector2.zero;
-        contentRect.offsetMax = Vector2.zero;
-        contentRect.anchoredPosition = Vector2.zero;
+        Vector2 min = new Vector2(inset, inset);
+        Vector2 max = new Vector2(1f - inset, 1f - inset);
+
+        if (contentImage != null)
+        {
+            RectTransform imgRect = contentImage.GetComponent<RectTransform>();
+            if (imgRect != null)
+            {
+                imgRect.anchorMin = min;
+                imgRect.anchorMax = max;
+                imgRect.offsetMin = Vector2.zero;
+                imgRect.offsetMax = Vector2.zero;
+                imgRect.anchoredPosition = Vector2.zero;
+            }
+        }
+
+        if (contentText != null)
+        {
+            RectTransform txtRect = contentText.GetComponent<RectTransform>();
+            if (txtRect != null)
+            {
+                txtRect.anchorMin = min;
+                txtRect.anchorMax = max;
+                txtRect.offsetMin = Vector2.zero;
+                txtRect.offsetMax = Vector2.zero;
+                txtRect.anchoredPosition = Vector2.zero;
+            }
+        }
     }
 
     private void Awake()
@@ -88,7 +120,7 @@ public class BubblePopBubble : MonoBehaviour
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
         }
 
-        ResolveImageReferences();
+        ResolveContentReferences();
 
         if (popButton == null)
         {
@@ -155,12 +187,67 @@ public class BubblePopBubble : MonoBehaviour
         Func<BubblePopBubble, bool> canPop = null,
         Action<BubblePopBubble> onRejectedPop = null)
     {
-        ResolveImageReferences();
+        Configure(
+            targetPlayArea,
+            bubbleSprite,
+            string.Empty,
+            popSprite,
+            animatorController,
+            speed,
+            amplitude,
+            frequency,
+            padding,
+            onPopped,
+            onReleased,
+            canPop,
+            onRejectedPop);
+
+        if (contentImage != null)
+        {
+            contentImage.sprite = contentSprite;
+            contentImage.gameObject.SetActive(contentSprite != null);
+            contentImage.enabled = contentSprite != null;
+            contentImage.raycastTarget = false;
+            contentImage.preserveAspect = true;
+            contentImage.color = contentBaseColor.a > 0f ? contentBaseColor : Color.white;
+            contentImage.transform.SetAsLastSibling();
+        }
+
+        if (contentText != null)
+        {
+            contentText.text = string.Empty;
+            contentText.gameObject.SetActive(false);
+            contentText.enabled = false;
+        }
+    }
+
+    public void Configure(
+        RectTransform targetPlayArea,
+        Sprite bubbleSprite,
+        string contentLetter,
+        Sprite popSprite,
+        RuntimeAnimatorController animatorController,
+        float speed,
+        float amplitude,
+        float frequency,
+        float padding,
+        Action<BubblePopBubble> onPopped,
+        Action<BubblePopBubble> onReleased,
+        Func<BubblePopBubble, bool> canPop = null,
+        Action<BubblePopBubble> onRejectedPop = null)
+    {
+        ResolveContentReferences();
 
         if (popRoutine != null)
         {
             StopCoroutine(popRoutine);
             popRoutine = null;
+        }
+
+        if (rejectedTapRoutine != null)
+        {
+            StopCoroutine(rejectedTapRoutine);
+            rejectedTapRoutine = null;
         }
 
         playArea = targetPlayArea;
@@ -200,13 +287,26 @@ public class BubblePopBubble : MonoBehaviour
 
         if (contentImage != null)
         {
-            contentImage.sprite = contentSprite;
-            contentImage.gameObject.SetActive(contentSprite != null);
-            contentImage.enabled = contentSprite != null;
+            contentImage.sprite = null;
+            contentImage.gameObject.SetActive(false);
+            contentImage.enabled = false;
             contentImage.raycastTarget = false;
             contentImage.preserveAspect = true;
             contentImage.color = contentBaseColor.a > 0f ? contentBaseColor : Color.white;
-            contentImage.transform.SetAsLastSibling();
+        }
+
+        if (contentText != null)
+        {
+            contentText.text = contentLetter;
+            contentText.gameObject.SetActive(!string.IsNullOrWhiteSpace(contentLetter));
+            contentText.enabled = !string.IsNullOrWhiteSpace(contentLetter);
+            contentText.raycastTarget = false;
+            contentText.alignment = TextAlignmentOptions.Center;
+            contentText.enableAutoSizing = true;
+            contentText.fontSizeMin = 34f;
+            contentText.fontSizeMax = 94f;
+            contentText.color = new Color(0.23f, 0.11f, 0.42f, 1f);
+            contentText.transform.SetAsLastSibling();
         }
 
         if (popButton != null)
@@ -226,13 +326,19 @@ public class BubblePopBubble : MonoBehaviour
         }
 
         rectTransform.localScale = Vector3.one;
+        rectTransform.localRotation = Quaternion.identity;
     }
 
-    private void ResolveImageReferences()
+    private void ResolveContentReferences()
     {
         if (bubbleImage == null)
         {
             bubbleImage = GetComponent<Image>();
+        }
+
+        if (contentText == null)
+        {
+            contentText = GetComponentInChildren<TMP_Text>(true);
         }
 
         if (contentImage == null)
@@ -266,6 +372,28 @@ public class BubblePopBubble : MonoBehaviour
             contentImage.raycastTarget = false;
             contentImage.color = Color.white;
         }
+
+        if (contentText == null)
+        {
+            GameObject textObject = new GameObject("Bubble Letter", typeof(RectTransform), typeof(TextMeshProUGUI));
+            textObject.transform.SetParent(transform, false);
+
+            RectTransform textRect = textObject.GetComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0.08f, 0.08f);
+            textRect.anchorMax = new Vector2(0.92f, 0.92f);
+            textRect.pivot = new Vector2(0.5f, 0.5f);
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            textRect.anchoredPosition = Vector2.zero;
+
+            contentText = textObject.GetComponent<TextMeshProUGUI>();
+            contentText.alignment = TextAlignmentOptions.Center;
+            contentText.enableAutoSizing = true;
+            contentText.fontSizeMin = 34f;
+            contentText.fontSizeMax = 94f;
+            contentText.color = new Color(0.23f, 0.11f, 0.42f, 1f);
+            contentText.raycastTarget = false;
+        }
     }
 
     public void Pop()
@@ -294,16 +422,37 @@ public class BubblePopBubble : MonoBehaviour
         popRoutine = StartCoroutine(PopRoutine());
     }
 
+    public void PlayRejectedTapFeedback()
+    {
+        if (popped || rectTransform == null)
+        {
+            return;
+        }
+
+        if (rejectedTapRoutine != null)
+        {
+            StopCoroutine(rejectedTapRoutine);
+        }
+
+        rejectedTapRoutine = StartCoroutine(RejectedTapRoutine());
+    }
+
     private IEnumerator PopRoutine()
     {
         Vector3 startScale = rectTransform.localScale;
         Color startBubbleColor = bubbleImage != null ? bubbleImage.color : Color.white;
         Color startContentColor = contentImage != null ? contentImage.color : Color.white;
+        Color startTextColor = contentText != null ? contentText.color : Color.white;
         bool hasAnimatorPop = TryPlayPopAnimator();
 
         if (contentImage != null && hasAnimatorPop)
         {
             contentImage.enabled = false;
+        }
+
+        if (contentText != null && hasAnimatorPop)
+        {
+            contentText.enabled = false;
         }
 
         if (bubbleImage != null && poppedBubbleSprite != null && !hasAnimatorPop)
@@ -336,6 +485,13 @@ public class BubblePopBubble : MonoBehaviour
                     color.a = Mathf.Lerp(startContentColor.a, 0f, t);
                     contentImage.color = color;
                 }
+
+                if (contentText != null)
+                {
+                    Color color = startTextColor;
+                    color.a = Mathf.Lerp(startTextColor.a, 0f, t);
+                    contentText.color = color;
+                }
             }
 
             yield return null;
@@ -354,7 +510,7 @@ public class BubblePopBubble : MonoBehaviour
 
         if (popAnimator == null)
         {
-            return false;
+            popAnimator = gameObject.AddComponent<Animator>();
         }
 
         if (popAnimator.runtimeAnimatorController == null)
@@ -409,5 +565,27 @@ public class BubblePopBubble : MonoBehaviour
     private void Release()
     {
         releasedCallback?.Invoke(this);
+    }
+
+    private IEnumerator RejectedTapRoutine()
+    {
+        Vector3 startScale = rectTransform.localScale;
+        Quaternion startRotation = rectTransform.localRotation;
+        float elapsed = 0f;
+        const float duration = 0.22f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float wobble = Mathf.Sin(t * Mathf.PI * 4f) * (1f - t);
+            rectTransform.localScale = startScale * (1f + Mathf.Sin(t * Mathf.PI) * 0.08f);
+            rectTransform.localRotation = startRotation * Quaternion.Euler(0f, 0f, wobble * 10f);
+            yield return null;
+        }
+
+        rectTransform.localScale = startScale;
+        rectTransform.localRotation = startRotation;
+        rejectedTapRoutine = null;
     }
 }

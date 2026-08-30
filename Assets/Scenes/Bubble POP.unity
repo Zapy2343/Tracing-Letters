@@ -522,6 +522,8 @@ GameObject:
   - component: {fileID: 1407733225}
   - component: {fileID: 1407733226}
   - component: {fileID: 1407733227}
+  - component: {fileID: 1407733228}
+  - component: {fileID: 1407733229}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -669,6 +671,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 9c90f82998fd4e046b1fe65d17ba8f20, type: 3}
   - {fileID: 21300000, guid: 620ee6b937700ca4d82ad8f2ca75765f, type: 3}
   - {fileID: 21300000, guid: 63f2283596f1bf34798b239c0cc5b7c1, type: 3}
+  currentLevelIndex: 0
+  correctBubbleSpawnChance: 0.45
   autoLoadContentSpritesInEditor: 1
   editorContentSpritesFolder: Assets/Sprites/Images
   autoStart: 0
@@ -676,7 +680,7 @@ MonoBehaviour:
   maxActiveBubbles: 5
   initialPoolSize: 12
   allowPoolGrowth: 1
-  poolContainer: {fileID: 0}
+  poolContainer: {fileID: 1407733224}
   bubbleSizeRange: {x: 200, y: 250}
   spawnPadding: 90
   despawnPadding: 120
@@ -694,6 +698,9 @@ MonoBehaviour:
   riseSpeedRange: {x: 90, y: 175}
   wiggleAmplitudeRange: {x: 15, y: 45}
   wiggleFrequencyRange: {x: 1.25, y: 2.75}
+  bubblePopClip: {fileID: 8300000, guid: 3a0a9ffe16c609f4fb0c7d327c34d654, type: 3}
+  wrongBubbleClip: {fileID: 8300000, guid: f5876a08db862004baeb4aeed1881c1d, type: 3}
+  sfxSource: {fileID: 1407733228}
   score: 0
   onScoreChanged:
     m_PersistentCalls:
@@ -701,6 +708,11 @@ MonoBehaviour:
   onBubblePopped:
     m_PersistentCalls:
       m_Calls: []
+  currentLevelText: {fileID: 0}
+  currentLevelImage: {fileID: 0}
+  currentLevelTopOffset: 150
+  currentLevelImageSize: {x: 150, y: 150}
+  <bubblePopFXManager>k__BackingField: {fileID: 1407733229}
 --- !u!114 &1407733226
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -716,7 +728,13 @@ MonoBehaviour:
   gameManager: {fileID: 1407733225}
   targetScoreToComplete: 10
   completeAutomaticallyAtTargetScore: 1
-  menuSceneName: MainScreen
+  completionPauseSeconds: 1.35
+  proceedToNextLevel: 1
+  targetCanvas: {fileID: 1407733223}
+  sfxSource: {fileID: 1407733228}
+  completionClip: {fileID: 8300000, guid: b2c54d876605fe84aa8441f9f31fef86, type: 3}
+  completedLetterSize: {x: 360, y: 360}
+  overlayColor: {r: 0.82745105, g: 0.8941177, b: 0.9568628, a: 0.7372549}
 --- !u!114 &1407733227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -768,6 +786,142 @@ MonoBehaviour:
   - {fileID: 21300000, guid: cf4cfb9d992bc9c47b76ce1f407492af, type: 3}
   - {fileID: 21300000, guid: c7d0eec4f90cfb243a849c9e0432bbf9, type: 3}
   startGameAfterApply: 1
+--- !u!82 &1407733228
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1407733219}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &1407733229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1407733219}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4716cc3d37d546f489430ea25fca2e4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BubblePopFXManager
+  sparkSprite: {fileID: 21300000, guid: 561c7c6679e33144d9f2b78a8e97c467, type: 3}
+  glowSprite: {fileID: 21300000, guid: f0679b49ff856ef4ea280f9f5496d750, type: 3}
+  starburstSprite: {fileID: 21300000, guid: dca8d6427da1bc84aa7db3412f925a3a, type: 3}
+  lightRaysSprite: {fileID: 21300000, guid: d217548be81f28945a694438b04b6b46, type: 3}
+  sheenSprite: {fileID: 21300000, guid: 1718ce6fea96c15468d7d55a30a4c547, type: 3}
+  completionBalloonSprites:
+  - {fileID: -944182940, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -883958971, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -103612410, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -1118764611, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -860473812, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: 1789389789, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  completionConfettiSprites:
+  - {fileID: -70058073, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: 1980025297, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: 204721636, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  - {fileID: -2078598401, guid: 4e3209c0be5ae8e449e2b2b3a4ca57da, type: 3}
+  whiteSparkleSprite: {fileID: 580120832, guid: 04058552a9e193346a333f94e2e492c5, type: 3}
+  initialPoolSize: 60
+  allowPoolGrowth: 1
+  vibrantColors:
+  - {r: 1, g: 0.85, b: 0.2, a: 1}
+  - {r: 0.2, g: 0.9, b: 1, a: 1}
+  - {r: 1, g: 0.3, b: 0.85, a: 1}
+  - {r: 0.3, g: 1, b: 0.4, a: 1}
+  - {r: 1, g: 0.5, b: 0.15, a: 1}
+  - {r: 0.7, g: 0.4, b: 1, a: 1}
 --- !u!1 &2033761947
 GameObject:
   m_ObjectHideFlags: 0

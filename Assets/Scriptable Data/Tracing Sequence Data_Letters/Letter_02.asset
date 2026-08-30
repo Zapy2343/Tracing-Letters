@@ -9,29 +9,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: 98e1f2b03e3d2d344a69e11b231c407d, type: 3}
   m_Name: Letter_02
   m_EditorClassIdentifier: Assembly-CSharp::TracingLetterAsset
   letter:
     letterNumber: 2
     bubbleCorrectImage: {fileID: 21300000, guid: b1fbd1d1fa2da5546a61f0c45d328e83, type: 3}
     strokeSteps:
-    - stepName: 1
+    - stepName: 
       allowedAreaMask: {fileID: 21300000, guid: 937947688db358b40b6db738535f355d, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
-    - stepName: 2
+    - stepName: 
       allowedAreaMask: {fileID: 21300000, guid: 2164255aa303eec4aa02984cd42e936a, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
-    - stepName: 3
+    - stepName: 
       allowedAreaMask: {fileID: 21300000, guid: 2ae19f77d242f454e9b42f4533f3236b, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
-    - stepName: 4
+    - stepName: 
       allowedAreaMask: {fileID: 21300000, guid: f99c2e520dd61af4eb3759de97a74afc, type: 3}
       hintPathPoints: []
       hintPathResolution: 0

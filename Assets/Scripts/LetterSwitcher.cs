@@ -86,6 +86,22 @@ public class LetterSwitcher : MonoBehaviour
         ApplyCurrentLetter();
     }
 
+    private void OnEnable()
+    {
+        if (GlobalSoundManager.Instance != null)
+        {
+            GlobalSoundManager.Instance.SetMusicDucked(true, 0.5f);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (GlobalSoundManager.Instance != null)
+        {
+            GlobalSoundManager.Instance.SetMusicDucked(false);
+        }
+    }
+
     private void Update()
     {
         HandleKeyboardInput();

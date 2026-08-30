@@ -464,58 +464,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 207736827}
   m_CullTransparentMesh: 1
---- !u!1 &298970034
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 298970036}
-  - component: {fileID: 298970035}
-  m_Layer: 0
-  m_Name: Sound Manager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &298970035
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 298970034}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f104dba1fc10c2c44b70abe47e45bb68, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GlobalSoundManager
-  musicSource: {fileID: 1329518002}
-  sfxSource: {fileID: 1329518002}
-  defaultMusicClip: {fileID: 8300000, guid: 2614179291c867d43a8bfcdc09952cc4, type: 3}
-  playMusicOnStart: 1
-  defaultSoundEnabled: 1
-  defaultMusicEnabled: 1
-  defaultSoundVolume: 1
-  defaultMusicVolume: 0.6
---- !u!4 &298970036
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 298970034}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1682.278, y: 856.538, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -1218,7 +1166,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1052640278}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
@@ -1342,6 +1290,7 @@ MonoBehaviour:
   recordedHintPathMaxPoints: 10
   recordedHintPathMinPointDistance: 8
   drawingLockedAfterCompletion: 0
+  drawingLockedForHint: 0
   maskWriterShader: {fileID: 4800000, guid: d3cdb5f0d3f4a4e4c97064b76b532b0c, type: 3}
   revealShader: {fileID: 4800000, guid: 315b0c78816d4214daf9382ad3e6e3c5, type: 3}
   customMaskWriterMaterial: {fileID: 0}
@@ -2885,53 +2834,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 291b9f09733da5e49836051b89fcf797, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IAPManager
-  ProductId: no_ads_forever
-  PurchaseSuccessPanel: {fileID: 461985258}
---- !u!1 &1777027314
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1777027316}
-  - component: {fileID: 1777027315}
-  m_Layer: 0
-  m_Name: AdManager
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1777027315
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1777027314}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc8e337c2d7762c488537516ff777891, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AdManager
-  hasPurchasedRemoveAds: 0
---- !u!4 &1777027316
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1777027314}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.6721, y: 0, z: 1.6721}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  defaultProductId: no_ads_forever
+  purchaseSuccessPanel: {fileID: 0}
 --- !u!1 &2033761947
 GameObject:
   m_ObjectHideFlags: 0
@@ -3169,5 +3073,3 @@ SceneRoots:
   - {fileID: 1407733224}
   - {fileID: 2117393345}
   - {fileID: 1329518004}
-  - {fileID: 298970036}
-  - {fileID: 1777027316}

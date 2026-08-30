@@ -1,12 +1,19 @@
 using System;
 using Unity.Services.LevelPlay;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class AdManager : MonoBehaviour
 {
     public static AdManager Instance { get; private set; }
 
-    const string RemoveAdsPlayerPrefsKey = "remove_ads_purchased";
+    public const string RemoveAdsPlayerPrefsKey = "remove_ads_purchased";
+    public const string RemoveAdsPurchasedAtKey = "remove_ads_purchased_at_utc";
+    public const string RemoveAdsDeviceIdKey = "remove_ads_device_id";
+    public const string RemoveAdsProductIdKey = "remove_ads_product_id";
+    const string MainScreenSceneName = "MainScreen";
+    const string TracingLetterSceneName = "Tracing Letter";
+    const string BubblePopSceneName = "Bubble POP";
 
     [SerializeField]
     bool hasPurchasedRemoveAds;
@@ -18,6 +25,7 @@ public class AdManager : MonoBehaviour
     bool isInitializing;
     bool isInitialized;
     bool callbacksRegistered;
+    bool showInterstitialWhenMainScreenLoads;
 
     public bool HasPurchasedRemoveAds => hasPurchasedRemoveAds;
     public bool IsInitialized => isInitialized;
@@ -27,8 +35,9 @@ public class AdManager : MonoBehaviour
     public event Action OnInitialized;
     public event Action<string> OnInitializationFailed;
     public event Action OnRewardedAdRewarded;
+    public event Action<bool> OnRemoveAdsPurchaseChanged;
 
-    ///[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void CreateAdManager()
     {
         if (Instance != null)
@@ -51,7 +60,8 @@ public class AdManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        hasPurchasedRemoveAds = PlayerPrefs.GetInt(RemoveAdsPlayerPrefsKey, hasPurchasedRemoveAds ? 1 : 0) == 1;
+        hasPurchasedRemoveAds = HasStoredRemoveAdsPurchase() || hasPurchasedRemoveAds;
+        SceneManager.sceneLoaded += HandleSceneLoaded;
         InitializeAds();
     }
 
@@ -77,10 +87,15 @@ public class AdManager : MonoBehaviour
 
     public void SetRemoveAdsPurchased(bool purchased)
     {
-        print("has purchased");
+        SetRemoveAdsPurchased(purchased, string.Empty);
+    }
+
+    public void SetRemoveAdsPurchased(bool purchased, string productId)
+    {
         hasPurchasedRemoveAds = purchased;
-        PlayerPrefs.SetInt(RemoveAdsPlayerPrefsKey, purchased ? 1 : 0);
-        PlayerPrefs.Save();
+        SaveRemoveAdsPurchaseState(purchased, productId);
+        OnRemoveAdsPurchaseChanged?.Invoke(purchased);
+        MainScreenAdUiController.RefreshCurrentMainScreen();
         
         if (purchased)
         {
@@ -92,6 +107,7 @@ public class AdManager : MonoBehaviour
         }
 
         InitializeAds();
+        ApplySceneAdPolicy(SceneManager.GetActiveScene());
     }
 
     public void LoadBannerAd()
@@ -106,7 +122,7 @@ public class AdManager : MonoBehaviour
 
     public void ShowBannerAd()
     {
-        if (!CanShowAds())
+        if (!CanShowAds() || IsMainScreenActive())
         {
             return;
         }
@@ -139,6 +155,21 @@ public class AdManager : MonoBehaviour
 
         interstitialAd.ShowAd();
         return true;
+    }
+
+    public void ShowInterstitialOnNextMainScreen()
+    {
+        if (hasPurchasedRemoveAds)
+        {
+            return;
+        }
+
+        showInterstitialWhenMainScreenLoads = true;
+
+        if (IsMainScreenActive())
+        {
+            TryShowPendingMainScreenInterstitial();
+        }
     }
 
     public void LoadRewardedAd()
@@ -202,6 +233,7 @@ public class AdManager : MonoBehaviour
         LoadBannerAd();
         LoadInterstitialAd();
         LoadRewardedAd();
+        ApplySceneAdPolicy(SceneManager.GetActiveScene());
 
         OnInitialized?.Invoke();
     }
@@ -261,6 +293,12 @@ public class AdManager : MonoBehaviour
     void BannerOnAdLoaded(LevelPlayAdInfo adInfo)
     {
         Debug.Log($"[AdManager] Banner loaded: {adInfo}");
+        if (IsMainScreenActive())
+        {
+            bannerAd?.HideAd();
+            return;
+        }
+
         bannerAd?.ShowAd();
     }
 
@@ -272,6 +310,7 @@ public class AdManager : MonoBehaviour
     void InterstitialOnAdLoaded(LevelPlayAdInfo adInfo)
     {
         Debug.Log($"[AdManager] Interstitial loaded: {adInfo}");
+        TryShowPendingMainScreenInterstitial();
     }
 
     void InterstitialOnAdLoadFailed(LevelPlayAdError error)
@@ -318,7 +357,80 @@ public class AdManager : MonoBehaviour
             LevelPlay.OnInitFailed -= OnLevelPlayInitFailed;
         }
 
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+
         DestroyAds();
         Instance = null;
+    }
+
+    void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ApplySceneAdPolicy(scene);
+    }
+
+    void ApplySceneAdPolicy(Scene scene)
+    {
+        if (!scene.IsValid())
+        {
+            return;
+        }
+
+        if (scene.name == MainScreenSceneName)
+        {
+            HideBannerAd();
+            TryShowPendingMainScreenInterstitial();
+        }
+        else if (scene.name == TracingLetterSceneName || scene.name == BubblePopSceneName)
+        {
+            LoadBannerAd();
+            ShowBannerAd();
+        }
+    }
+
+    void TryShowPendingMainScreenInterstitial()
+    {
+        if (!showInterstitialWhenMainScreenLoads || !IsMainScreenActive())
+        {
+            return;
+        }
+
+        if (ShowInterstitialAd())
+        {
+            showInterstitialWhenMainScreenLoads = false;
+        }
+    }
+
+    static bool IsMainScreenActive()
+    {
+        return SceneManager.GetActiveScene().name == MainScreenSceneName;
+    }
+
+    public static bool HasStoredRemoveAdsPurchase()
+    {
+        return PlayerPrefs.GetInt(RemoveAdsPlayerPrefsKey, 0) == 1;
+    }
+
+    static void SaveRemoveAdsPurchaseState(bool purchased, string productId)
+    {
+        PlayerPrefs.SetInt(RemoveAdsPlayerPrefsKey, purchased ? 1 : 0);
+
+        if (purchased)
+        {
+            PlayerPrefs.SetString(RemoveAdsPurchasedAtKey, DateTime.UtcNow.ToString("o"));
+            PlayerPrefs.SetString(RemoveAdsDeviceIdKey, SystemInfo.deviceUniqueIdentifier);
+
+            if (!string.IsNullOrWhiteSpace(productId))
+            {
+                PlayerPrefs.SetString(RemoveAdsProductIdKey, productId);
+            }
+        }
+        else
+        {
+            PlayerPrefs.DeleteKey(RemoveAdsPurchasedAtKey);
+            PlayerPrefs.DeleteKey(RemoveAdsDeviceIdKey);
+            PlayerPrefs.DeleteKey(RemoveAdsProductIdKey);
+        }
+
+        PlayerPrefs.Save();
     }
 }

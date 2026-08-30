@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Persistent app-wide audio controller for music and sound effects.
+/// Persistent app-wide audio controller for music playlist, looping, ducking, and sound effects.
 /// Put one GlobalSoundManager in the first scene and call ToggleMusic/ToggleSound from UI buttons or switches.
 /// </summary>
 public class GlobalSoundManager : MonoBehaviour
@@ -15,7 +16,19 @@ public class GlobalSoundManager : MonoBehaviour
     public static GlobalSoundManager Instance { get; private set; }
     public static event Action OnSettingsChanged;
 
-    [Header("Music")]
+    [Header("Music Playlist")]
+    [Tooltip("List of background music clips available to play.")]
+    [SerializeField] private List<AudioClip> bgMusicClips = new List<AudioClip>();
+
+    [Tooltip("If true, the current music track will loop continuously.")]
+    [SerializeField] private bool loopCurrentMusic = true;
+
+    [Tooltip("If loopCurrentMusic is false, automatically play the next track when current ends.")]
+    [SerializeField] private bool autoPlayNextTrack = true;
+
+    [SerializeField] private int currentTrackIndex = 0;
+
+    [Header("Audio Sources")]
     [Tooltip("AudioSource used for background music. Auto-created if empty.")]
     [SerializeField] private AudioSource musicSource;
 
@@ -42,6 +55,11 @@ public class GlobalSoundManager : MonoBehaviour
     public bool MusicEnabled { get; private set; }
     public float SoundVolume { get; private set; }
     public float MusicVolume { get; private set; }
+    public bool IsMusicDucked { get; private set; }
+    public int CurrentTrackIndex => currentTrackIndex;
+    public int MusicClipCount => bgMusicClips != null ? bgMusicClips.Count : 0;
+
+    private float musicDuckMultiplier = 0.5f;
 
     private void Awake()
     {
@@ -54,6 +72,7 @@ public class GlobalSoundManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+        AutoLoadMusicClipsIfEmpty();
         ResolveAudioSources();
         LoadSettings();
         ApplyMusicState();
@@ -61,9 +80,24 @@ public class GlobalSoundManager : MonoBehaviour
 
     private void Start()
     {
-        if (playMusicOnStart && defaultMusicClip != null)
+        if (playMusicOnStart)
         {
-            PlayMusic(defaultMusicClip);
+            if (bgMusicClips != null && bgMusicClips.Count > 0)
+            {
+                PlayMusicTrack(currentTrackIndex);
+            }
+            else if (defaultMusicClip != null)
+            {
+                PlayMusic(defaultMusicClip);
+            }
+        }
+    }
+
+    private void Update()
+    {
+        if (!loopCurrentMusic && autoPlayNextTrack && MusicEnabled && musicSource != null && !musicSource.isPlaying && MusicClipCount > 1)
+        {
+            PlayRandomTrack();
         }
     }
 
@@ -109,6 +143,62 @@ public class GlobalSoundManager : MonoBehaviour
         NotifySettingsChanged();
     }
 
+    public void SetMusicDucked(bool ducked, float duckMultiplier = 0.5f)
+    {
+        IsMusicDucked = ducked;
+        musicDuckMultiplier = Mathf.Clamp01(duckMultiplier);
+        ApplyMusicState();
+    }
+
+    public void SetLoopCurrentMusic(bool loop)
+    {
+        loopCurrentMusic = loop;
+        if (musicSource != null)
+        {
+            musicSource.loop = loopCurrentMusic;
+        }
+    }
+
+    public void PlayMusicTrack(int index)
+    {
+        if (bgMusicClips == null || bgMusicClips.Count == 0)
+        {
+            if (defaultMusicClip != null)
+            {
+                PlayMusic(defaultMusicClip);
+            }
+            return;
+        }
+
+        currentTrackIndex = Mathf.Clamp(index, 0, bgMusicClips.Count - 1);
+        AudioClip clip = bgMusicClips[currentTrackIndex];
+        if (clip != null)
+        {
+            PlayMusic(clip);
+        }
+    }
+
+    public void PlayNextTrack()
+    {
+        if (bgMusicClips == null || bgMusicClips.Count == 0) return;
+        int nextIndex = (currentTrackIndex + 1) % bgMusicClips.Count;
+        PlayMusicTrack(nextIndex);
+    }
+
+    public void PlayPreviousTrack()
+    {
+        if (bgMusicClips == null || bgMusicClips.Count == 0) return;
+        int prevIndex = (currentTrackIndex - 1 + bgMusicClips.Count) % bgMusicClips.Count;
+        PlayMusicTrack(prevIndex);
+    }
+
+    public void PlayRandomTrack()
+    {
+        if (bgMusicClips == null || bgMusicClips.Count == 0) return;
+        int randomIndex = UnityEngine.Random.Range(0, bgMusicClips.Count);
+        PlayMusicTrack(randomIndex);
+    }
+
     public void PlaySfx(AudioClip clip, float volumeScale = 1f)
     {
         if (!SoundEnabled || clip == null)
@@ -117,17 +207,35 @@ public class GlobalSoundManager : MonoBehaviour
         }
 
         ResolveAudioSources();
-        sfxSource.PlayOneShot(clip, SoundVolume * Mathf.Clamp01(volumeScale));
+        if (sfxSource != null)
+        {
+            sfxSource.volume = SoundVolume;
+            sfxSource.mute = !SoundEnabled;
+            sfxSource.PlayOneShot(clip, SoundVolume * Mathf.Clamp01(volumeScale));
+        }
     }
 
     public void PlaySfx(AudioSource source, AudioClip clip, float volumeScale = 1f)
     {
-        if (!SoundEnabled || source == null || clip == null)
+        if (!SoundEnabled || clip == null)
         {
             return;
         }
 
-        source.PlayOneShot(clip, SoundVolume * Mathf.Clamp01(volumeScale));
+        ResolveAudioSources();
+
+        AudioSource targetSource = source;
+        if (targetSource == null || targetSource == musicSource)
+        {
+            targetSource = sfxSource;
+        }
+
+        if (targetSource != null)
+        {
+            targetSource.volume = SoundVolume;
+            targetSource.mute = !SoundEnabled;
+            targetSource.PlayOneShot(clip, SoundVolume * Mathf.Clamp01(volumeScale));
+        }
     }
 
     public void PlayMusic(AudioClip clip)
@@ -139,7 +247,7 @@ public class GlobalSoundManager : MonoBehaviour
 
         ResolveAudioSources();
         musicSource.clip = clip;
-        musicSource.loop = true;
+        musicSource.loop = loopCurrentMusic;
         musicSource.playOnAwake = false;
         ApplyMusicState();
     }
@@ -154,35 +262,43 @@ public class GlobalSoundManager : MonoBehaviour
 
     private void ResolveAudioSources()
     {
-        if (musicSource == null)
-        {
-            musicSource = GetComponent<AudioSource>();
-        }
+        AudioSource[] sources = GetComponents<AudioSource>();
 
         if (musicSource == null)
         {
-            musicSource = gameObject.AddComponent<AudioSource>();
-        }
-
-        musicSource.loop = true;
-        musicSource.playOnAwake = false;
-
-        if (sfxSource == null)
-        {
-            AudioSource[] audioSources = GetComponents<AudioSource>();
-            for (int i = 0; i < audioSources.Length; i++)
+            if (sources != null && sources.Length > 0)
             {
-                if (audioSources[i] != musicSource)
-                {
-                    sfxSource = audioSources[i];
-                    break;
-                }
+                musicSource = sources[0];
+            }
+            else
+            {
+                musicSource = gameObject.AddComponent<AudioSource>();
             }
         }
 
-        if (sfxSource == null)
+        musicSource.loop = loopCurrentMusic;
+        musicSource.playOnAwake = false;
+
+        if (sfxSource == null || sfxSource == musicSource)
         {
-            sfxSource = gameObject.AddComponent<AudioSource>();
+            sources = GetComponents<AudioSource>();
+            sfxSource = null;
+            if (sources != null)
+            {
+                for (int i = 0; i < sources.Length; i++)
+                {
+                    if (sources[i] != null && sources[i] != musicSource)
+                    {
+                        sfxSource = sources[i];
+                        break;
+                    }
+                }
+            }
+
+            if (sfxSource == null || sfxSource == musicSource)
+            {
+                sfxSource = gameObject.AddComponent<AudioSource>();
+            }
         }
 
         sfxSource.loop = false;
@@ -204,7 +320,13 @@ public class GlobalSoundManager : MonoBehaviour
             return;
         }
 
-        musicSource.volume = MusicEnabled ? MusicVolume : 0f;
+        float effectiveVolume = MusicVolume;
+        if (IsMusicDucked)
+        {
+            effectiveVolume *= musicDuckMultiplier;
+        }
+
+        musicSource.volume = MusicEnabled ? effectiveVolume : 0f;
 
         if (MusicEnabled && musicSource.clip != null && !musicSource.isPlaying)
         {
@@ -214,6 +336,35 @@ public class GlobalSoundManager : MonoBehaviour
         {
             musicSource.Pause();
         }
+    }
+
+    private void AutoLoadMusicClipsIfEmpty()
+    {
+#if UNITY_EDITOR
+        if (bgMusicClips != null && bgMusicClips.Count > 0) return;
+
+        bgMusicClips = new List<AudioClip>();
+        string[] searchPaths = new string[] {
+            "Assets/Sounds/BG.mp3",
+            "Assets/Sounds/ExtraBGM.mp3",
+            "Assets/Sounds/Momo Moonlight.mp3",
+            "Assets/Sounds/Pocket Lullaby.mp3"
+        };
+
+        foreach (string path in searchPaths)
+        {
+            AudioClip clip = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            if (clip != null)
+            {
+                bgMusicClips.Add(clip);
+            }
+        }
+
+        if (defaultMusicClip == null && bgMusicClips.Count > 0)
+        {
+            defaultMusicClip = bgMusicClips[0];
+        }
+#endif
     }
 
     private void NotifySettingsChanged()
