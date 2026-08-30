@@ -7,17 +7,6 @@ using UnityEngine.UI;
 
 public class WelcomeScreenController : MonoBehaviour
 {
-    [Serializable]
-#pragma warning disable 0649
-    private class UpdateManifest
-    {
-        public string latestVersion;
-        public string minSupportedVersion;
-        public string updateUrl;
-        public bool forceUpdate;
-    }
-#pragma warning restore 0649
-
     [Header("Scene")]
     [SerializeField] private LoadingScreenController loadingScreen;
     [SerializeField] private string nextSceneName = "MainScreen";
@@ -41,9 +30,6 @@ public class WelcomeScreenController : MonoBehaviour
     [SerializeField] private string connectivityCheckUrl = "https://clients3.google.com/generate_204";
 
     [Header("App Update")]
-    [Tooltip("Optional URL returning JSON with latestVersion, minSupportedVersion, updateUrl, and forceUpdate fields.")]
-    [SerializeField] private string updateManifestUrl = "";
-    [SerializeField] private float updateCheckTimeout = 6f;
     [SerializeField] private bool openStoreWhenForceUpdateRequired = true;
 
     private bool loadingAnimationFinished;
@@ -68,6 +54,11 @@ public class WelcomeScreenController : MonoBehaviour
 
     private void Start()
     {
+        if (AdManager.Instance != null)
+        {
+            AdManager.Instance.HideBannerAd();
+        }
+
         StartCoroutine(RunStartupChecks());
     }
 
@@ -94,7 +85,7 @@ public class WelcomeScreenController : MonoBehaviour
             yield return CheckInternetConnection(result => hasInternet = result);
         }
 
-        if (hasInternet && !string.IsNullOrWhiteSpace(updateManifestUrl))
+        if (hasInternet)
         {
             yield return CheckForAppUpdate();
         }
@@ -121,29 +112,22 @@ public class WelcomeScreenController : MonoBehaviour
 
     private IEnumerator CheckForAppUpdate()
     {
-        using UnityWebRequest request = UnityWebRequest.Get(updateManifestUrl);
-        request.timeout = Mathf.Max(1, Mathf.CeilToInt(updateCheckTimeout));
-
-        yield return request.SendWebRequest();
-
-        if (request.result != UnityWebRequest.Result.Success || string.IsNullOrWhiteSpace(request.downloadHandler.text))
+        if (AppUpdateChecker.Instance == null)
         {
-            yield break;
+            GameObject checkerObj = new GameObject("AppUpdateChecker");
+            checkerObj.AddComponent<AppUpdateChecker>();
         }
 
-        UpdateManifest manifest = JsonUtility.FromJson<UpdateManifest>(request.downloadHandler.text);
-        if (manifest == null)
+        yield return AppUpdateChecker.Instance.CheckForUpdatesRoutine((available, required) =>
         {
-            yield break;
-        }
-
-        updateUrl = manifest.updateUrl;
-        updateAvailable = IsRemoteVersionNewer(manifest.latestVersion, Application.version);
-        updateRequired = manifest.forceUpdate || IsRemoteVersionNewer(manifest.minSupportedVersion, Application.version);
+            updateAvailable = available;
+            updateRequired = required;
+            updateUrl = AppUpdateChecker.Instance.StoreUrl;
+        });
 
         if ((updateRequired || updateAvailable) && openStoreWhenForceUpdateRequired && !string.IsNullOrWhiteSpace(updateUrl))
         {
-            Application.OpenURL(updateUrl);
+            AppUpdateChecker.Instance.OpenStorePage();
         }
     }
 
@@ -376,36 +360,5 @@ public class WelcomeScreenController : MonoBehaviour
 
             canvasGroup.alpha = toAlpha;
         }
-    }
-
-    private static bool IsRemoteVersionNewer(string remoteVersion, string localVersion)
-    {
-        if (string.IsNullOrWhiteSpace(remoteVersion))
-        {
-            return false;
-        }
-
-        return TryParseVersion(remoteVersion, out Version remote)
-            && TryParseVersion(localVersion, out Version local)
-            && remote > local;
-    }
-
-    private static bool TryParseVersion(string value, out Version version)
-    {
-        version = null;
-
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        string[] parts = value.Trim().Split('.');
-        while (parts.Length < 2)
-        {
-            value += ".0";
-            parts = value.Split('.');
-        }
-
-        return Version.TryParse(value, out version);
     }
 }

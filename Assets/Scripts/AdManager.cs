@@ -11,6 +11,7 @@ public class AdManager : MonoBehaviour
     public const string RemoveAdsPurchasedAtKey = "remove_ads_purchased_at_utc";
     public const string RemoveAdsDeviceIdKey = "remove_ads_device_id";
     public const string RemoveAdsProductIdKey = "remove_ads_product_id";
+    const string WelcomeScreenSceneName = "WelcomeScreen";
     const string MainScreenSceneName = "MainScreen";
     const string TracingLetterSceneName = "Tracing Letter";
     const string BubblePopSceneName = "Bubble POP";
@@ -112,7 +113,7 @@ public class AdManager : MonoBehaviour
 
     public void LoadBannerAd()
     {
-        if (!CanShowAds())
+        if (!CanShowAds() || IsBannerBlockedScene(SceneManager.GetActiveScene().name))
         {
             return;
         }
@@ -122,8 +123,9 @@ public class AdManager : MonoBehaviour
 
     public void ShowBannerAd()
     {
-        if (!CanShowAds() || IsMainScreenActive())
+        if (!CanShowAds() || IsBannerBlockedScene(SceneManager.GetActiveScene().name))
         {
+            HideBannerAd();
             return;
         }
 
@@ -293,7 +295,7 @@ public class AdManager : MonoBehaviour
     void BannerOnAdLoaded(LevelPlayAdInfo adInfo)
     {
         Debug.Log($"[AdManager] Banner loaded: {adInfo}");
-        if (IsMainScreenActive())
+        if (IsBannerBlockedScene(SceneManager.GetActiveScene().name))
         {
             bannerAd?.HideAd();
             return;
@@ -375,16 +377,26 @@ public class AdManager : MonoBehaviour
             return;
         }
 
-        if (scene.name == MainScreenSceneName)
+        if (IsBannerBlockedScene(scene.name))
         {
             HideBannerAd();
-            TryShowPendingMainScreenInterstitial();
+            if (scene.name == MainScreenSceneName)
+            {
+                TryShowPendingMainScreenInterstitial();
+            }
         }
         else if (scene.name == TracingLetterSceneName || scene.name == BubblePopSceneName)
         {
             LoadBannerAd();
             ShowBannerAd();
         }
+    }
+
+    static bool IsBannerBlockedScene(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return true;
+        string lower = sceneName.ToLower();
+        return lower.Contains("welcome") || lower.Contains("main");
     }
 
     void TryShowPendingMainScreenInterstitial()
