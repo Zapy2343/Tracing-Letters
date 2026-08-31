@@ -1455,7 +1455,11 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 32344a47a53a31f4aa8af802530c3b32, type: 3}
   scorePerCorrectBubble: 10
   advanceToNextLetterAfterCorrect: 1
-  nextLetterDelay: 0.65
+  showBigCorrectImageInCenter: 1
+  bigImageDisplaySize: {x: 480, y: 480}
+  bigImageDisplayDuration: 2
+  customBigImageDisplay: {fileID: 0}
+  customBigImageOverlay: {fileID: 0}
   onCorrectBubbleSelected:
     m_PersistentCalls:
       m_Calls: []
@@ -1998,9 +2002,9 @@ MonoBehaviour:
   tracingLoopSource: {fileID: 1329518002}
   tracingLoopClip: {fileID: 0}
   strokeStepCompleteClip: {fileID: 8300000, guid: afd8a1051b5d0864daa65ed82312a031, type: 3}
-  letterCompleteClip: {fileID: 8300000, guid: 52ae14f8947c6c3489c6c121211e975a, type: 3}
-  correctBubbleClip: {fileID: 8300000, guid: f5876a08db862004baeb4aeed1881c1d, type: 3}
-  wrongBubbleClip: {fileID: 8300000, guid: 8bd8e0d57c651c24ba24c4b1eb98a705, type: 3}
+  letterCompleteClip: {fileID: 8300000, guid: 5ac9eb10778fbca49b031c99d18a7847, type: 3}
+  correctBubbleClip: {fileID: 8300000, guid: 3a0a9ffe16c609f4fb0c7d327c34d654, type: 3}
+  wrongBubbleClip: {fileID: 8300000, guid: f5876a08db862004baeb4aeed1881c1d, type: 3}
   sfxVolume: 1
   tracingLoopVolume: 0.35
 --- !u!4 &1329518004

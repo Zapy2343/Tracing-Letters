@@ -732,7 +732,7 @@ MonoBehaviour:
   proceedToNextLevel: 1
   targetCanvas: {fileID: 1407733223}
   sfxSource: {fileID: 1407733228}
-  completionClip: {fileID: 8300000, guid: b2c54d876605fe84aa8441f9f31fef86, type: 3}
+  completionClip: {fileID: 8300000, guid: 5ac9eb10778fbca49b031c99d18a7847, type: 3}
   completedLetterSize: {x: 360, y: 360}
   overlayColor: {r: 0.82745105, g: 0.8941177, b: 0.9568628, a: 0.7372549}
 --- !u!114 &1407733227

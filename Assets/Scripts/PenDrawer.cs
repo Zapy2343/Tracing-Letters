@@ -1453,7 +1453,7 @@ public class PenDrawer : MonoBehaviour
     /// <summary>
     /// Instantly forces 100% reveal of the mask graphic.
     /// </summary>
-    public void AutoCompleteMask()
+    private void AutoCompleteMask()
     {
         if (isCompleted) return;
 
