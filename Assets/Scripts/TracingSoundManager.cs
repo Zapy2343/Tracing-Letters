@@ -25,6 +25,13 @@ public class TracingSoundManager : MonoBehaviour
     [Tooltip("Played when the full letter tracing is completed.")]
     [SerializeField] private AudioClip letterCompleteClip;
 
+    [Header("Word / Letter Audio Clips (Fallback)")]
+    [Tooltip("Fallback sound played when a letter/word starts if the active TracingLetterAsset has no StartSound assigned.")]
+    [SerializeField] private AudioClip defaultStartSound;
+
+    [Tooltip("Fallback sound played when tracing & correct bubble are completed if the active TracingLetterAsset has no FinishingSound assigned.")]
+    [SerializeField] private AudioClip defaultFinishingSound;
+
     [Header("Bubble Quiz Sounds")]
     [Tooltip("Played when the child taps the correct bubble.")]
     [SerializeField] private AudioClip correctBubbleClip;
@@ -127,6 +134,84 @@ public class TracingSoundManager : MonoBehaviour
         PlayOneShot(letterCompleteClip);
     }
 
+    /// <summary>
+    /// Plays the start sound for the active word/letter.
+    /// Uses TracingLetterAsset.StartSound if assigned, otherwise falls back to defaultStartSound.
+    /// </summary>
+    public void PlayLetterStartSound(TracingLetterAsset letterAsset = null)
+    {
+        AudioClip clip = null;
+        if (letterAsset != null)
+        {
+            clip = letterAsset.StartSound;
+        }
+        else if (penDrawer != null)
+        {
+            TracingLetterAsset activeAsset = penDrawer.CurrentLetterAsset;
+            if (activeAsset != null && activeAsset.StartSound != null)
+            {
+                clip = activeAsset.StartSound;
+            }
+            else
+            {
+                LetterSequence activeSeq = penDrawer.CurrentLetterSequence;
+                if (activeSeq != null)
+                {
+                    clip = activeSeq.StartSound;
+                }
+            }
+        }
+
+        if (clip == null)
+        {
+            clip = defaultStartSound;
+        }
+
+        if (clip != null)
+        {
+            PlayOneShot(clip);
+        }
+    }
+
+    /// <summary>
+    /// Plays the finishing sound after completing tracing and popping the correct bubble.
+    /// Uses TracingLetterAsset.FinishingSound if assigned, otherwise falls back to defaultFinishingSound.
+    /// </summary>
+    public void PlayLetterFinishingSound(TracingLetterAsset letterAsset = null)
+    {
+        AudioClip clip = null;
+        if (letterAsset != null)
+        {
+            clip = letterAsset.FinishingSound;
+        }
+        else if (penDrawer != null)
+        {
+            TracingLetterAsset activeAsset = penDrawer.CurrentLetterAsset;
+            if (activeAsset != null && activeAsset.FinishingSound != null)
+            {
+                clip = activeAsset.FinishingSound;
+            }
+            else
+            {
+                LetterSequence activeSeq = penDrawer.CurrentLetterSequence;
+                if (activeSeq != null)
+                {
+                    clip = activeSeq.FinishingSound;
+                }
+            }
+        }
+
+        if (clip == null)
+        {
+            clip = defaultFinishingSound;
+        }
+
+        if (clip != null)
+        {
+            PlayOneShot(clip);
+        }
+    }
+
     private void StartTracingLoop()
     {
         if (tracingLoopSource == null || tracingLoopClip == null)
@@ -157,7 +242,7 @@ public class TracingSoundManager : MonoBehaviour
         }
     }
 
-    private void PlayOneShot(AudioClip clip)
+    public void PlayOneShot(AudioClip clip)
     {
         if (sfxSource == null || clip == null)
         {

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "TracingLetter", menuName = "Tracing Letters/Tracing Letter")]
@@ -9,6 +9,8 @@ public class TracingLetterAsset : ScriptableObject
     public LetterSequence Letter => letter;
     public int LetterNumber => letter != null ? letter.LetterNumber : 0;
     public Sprite BubbleCorrectImage => letter != null ? letter.BubbleCorrectImage : null;
+    public AudioClip StartSound => letter != null ? letter.StartSound : null;
+    public AudioClip FinishingSound => letter != null ? letter.FinishingSound : null;
     public IReadOnlyList<TracingStrokeStep> StrokeSteps => letter != null ? letter.StrokeSteps : null;
     public bool HasSteps => letter != null && letter.HasSteps;
     public TracingStrokeStep GetStep(int index) => letter != null ? letter.GetStep(index) : null;

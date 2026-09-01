@@ -27,6 +27,9 @@ public class LetterSwitcher : MonoBehaviour
     [Tooltip("Reference to TracingFXManager for transition FX. Auto-detected if empty.")]
     [SerializeField] private TracingFXManager fxManager;
 
+    [Tooltip("Reference to TracingSoundManager for letter start sound. Auto-detected if empty.")]
+    [SerializeField] private TracingSoundManager soundManager;
+
     [Header("Sprite Lists (Optional - Drag & Drop Sprites here)")]
     [Tooltip("List of Design Letter Sprites (e.g. 1.png, 2.png, etc.). If left empty, will attempt to load from Resources/Design Letters folder.")]
     [SerializeField] private List<Sprite> designLetterSprites = new List<Sprite>();
@@ -76,6 +79,16 @@ public class LetterSwitcher : MonoBehaviour
             fxManager = FindFirstObjectByType<TracingFXManager>();
 #else
             fxManager = FindObjectOfType<TracingFXManager>();
+#endif
+        }
+
+        // Auto-detect TracingSoundManager if not assigned
+        if (soundManager == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            soundManager = FindFirstObjectByType<TracingSoundManager>();
+#else
+            soundManager = FindObjectOfType<TracingSoundManager>();
 #endif
         }
 
@@ -340,6 +353,12 @@ public class LetterSwitcher : MonoBehaviour
                 penDrawer.SetCurrentLetterNumber(currentLetterNumber);
                 penDrawer.ClearAllLines();
             }
+        }
+
+        // 4. Play letter/word start sound
+        if (soundManager != null)
+        {
+            soundManager.PlayLetterStartSound(penDrawer != null ? penDrawer.CurrentLetterAsset : null);
         }
     }
 

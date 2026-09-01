@@ -83,11 +83,19 @@ public class LetterSequence
     [Tooltip("Default correct image used by bubble-choice quizzes after this letter is traced.")]
     [SerializeField] private Sprite bubbleCorrectImage;
 
+    [Tooltip("Optional sound played when this letter/word starts or is instantiated in the scene.")]
+    [SerializeField] private AudioClip startSound;
+
+    [Tooltip("Optional sound played after completing letter tracing and popping the correct bubble.")]
+    [SerializeField] private AudioClip finishingSound;
+
     [Tooltip("Ordered stroke steps for this letter. Designers can add 3, 4, 5, or however many this letter needs.")]
     [SerializeField] private List<TracingStrokeStep> strokeSteps = new List<TracingStrokeStep>();
 
     public int LetterNumber => letterNumber;
     public Sprite BubbleCorrectImage => bubbleCorrectImage;
+    public AudioClip StartSound => startSound;
+    public AudioClip FinishingSound => finishingSound;
     public IReadOnlyList<TracingStrokeStep> StrokeSteps => strokeSteps;
 
     public bool HasSteps => strokeSteps != null && strokeSteps.Count > 0;
@@ -114,12 +122,16 @@ public class LetterSequence
         {
             letterNumber = Mathf.Max(1, fallbackLetterNumber);
             bubbleCorrectImage = null;
+            startSound = null;
+            finishingSound = null;
             strokeSteps = new List<TracingStrokeStep>();
             return;
         }
 
         letterNumber = Mathf.Max(1, source.LetterNumber > 0 ? source.LetterNumber : fallbackLetterNumber);
         bubbleCorrectImage = source.BubbleCorrectImage;
+        startSound = source.StartSound;
+        finishingSound = source.FinishingSound;
         strokeSteps = new List<TracingStrokeStep>();
 
         IReadOnlyList<TracingStrokeStep> sourceSteps = source.StrokeSteps;

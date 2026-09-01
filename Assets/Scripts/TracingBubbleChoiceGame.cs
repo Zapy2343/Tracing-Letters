@@ -468,6 +468,7 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         quizActive = false;
 
         soundManager?.PlayCorrectBubble();
+        soundManager?.PlayLetterFinishingSound(penDrawer != null ? penDrawer.CurrentLetterAsset : null);
         RewardCurrentLetter();
         onCorrectBubbleSelected?.Invoke();
 
