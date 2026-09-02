@@ -15,4 +15,21 @@ MonoBehaviour:
   letter:
     letterNumber: 24
     bubbleCorrectImage: {fileID: 0}
-    strokeSteps: []
+    startSound: {fileID: 8300000, guid: 43b9dde2e13750349ab8b0e776264124, type: 3}
+    finishingSound: {fileID: 8300000, guid: a2ae4aea901429341aba7dd68438f16b, type: 3}
+    strokeSteps:
+    - stepName: 1
+      allowedAreaMask: {fileID: 21300000, guid: 26b60362fb0d1ed4ea2cb31520a85dc1, type: 3}
+      hintPathPoints: []
+      hintPathResolution: 0
+      completionThresholdOverride: 0
+    - stepName: 2
+      allowedAreaMask: {fileID: 21300000, guid: b5121cf95e370a34b87fcd3b88ad4ef5, type: 3}
+      hintPathPoints: []
+      hintPathResolution: 0
+      completionThresholdOverride: 0
+    - stepName: 3
+      allowedAreaMask: {fileID: 21300000, guid: 8a725be44d849da408ee2ffdbad49bf2, type: 3}
+      hintPathPoints: []
+      hintPathResolution: 0
+      completionThresholdOverride: 0

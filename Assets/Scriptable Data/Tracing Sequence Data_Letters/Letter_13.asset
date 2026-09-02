@@ -14,5 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TracingLetterAsset
   letter:
     letterNumber: 13
-    bubbleCorrectImage: {fileID: 0}
-    strokeSteps: []
+    bubbleCorrectImage: {fileID: 21300000, guid: c109f4a850b12ee4aa38316fd0cc8172, type: 3}
+    startSound: {fileID: 8300000, guid: b40b993aa66d2ea49afc3a10439d7e34, type: 3}
+    finishingSound: {fileID: 8300000, guid: e714aac2b7d761d4faea1f4ffd369aa4, type: 3}
+    strokeSteps:
+    - stepName: 1
+      allowedAreaMask: {fileID: 21300000, guid: c999ed9f5e33b98499f0099c983bb656, type: 3}
+      hintPathPoints: []
+      hintPathResolution: 0
+      completionThresholdOverride: 0
+    - stepName: 2
+      allowedAreaMask: {fileID: 21300000, guid: 418b4c0155572ab40b34c91f66b60bc8, type: 3}
+      hintPathPoints: []
+      hintPathResolution: 0
+      completionThresholdOverride: 0
+    - stepName: 3
+      allowedAreaMask: {fileID: 21300000, guid: 2b17d49de57d50549bd347feabacf61e, type: 3}
+      hintPathPoints: []
+      hintPathResolution: 0
+      completionThresholdOverride: 0
