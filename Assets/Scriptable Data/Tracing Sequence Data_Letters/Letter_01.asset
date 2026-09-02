@@ -15,16 +15,18 @@ MonoBehaviour:
   letter:
     letterNumber: 1
     bubbleCorrectImage: {fileID: 21300000, guid: 99ef623cd29d2964cb56eabbdadfa608, type: 3}
+    startSound: {fileID: 8300000, guid: 5c83c12c3fb57b748be2664407058b97, type: 3}
+    finishingSound: {fileID: 8300000, guid: 39a79fe289dd84c4e8cba97fe229b60e, type: 3}
     strokeSteps:
     - stepName: 1
-      allowedAreaMask: {fileID: 21300000, guid: f4d4cb4338d618241a1b441e79b2cf24, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 8cb637b6f60331e42a905de72da85fe8, type: 3}
       hintPathPoints:
       - {x: 9.0929, y: 174.92589}
       - {x: 9.141319, y: -156.38708}
       hintPathResolution: 18
       completionThresholdOverride: 0.8
     - stepName: 2
-      allowedAreaMask: {fileID: 21300000, guid: 4f79995dd2e093042bb6e7639bf0992f, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 3fccf6e402aef7e4289bef9cd76cf635, type: 3}
       hintPathPoints:
       - {x: -24.635048, y: 51.99968}
       - {x: -107.24591, y: 55.23321}
@@ -39,7 +41,7 @@ MonoBehaviour:
       hintPathResolution: 48
       completionThresholdOverride: 0.8
     - stepName: 3
-      allowedAreaMask: {fileID: 21300000, guid: 04dcb3174e9d7184791ebead32d94db6, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 54262f9c1b9cdf242b7a72592f61e464, type: 3}
       hintPathPoints:
       - {x: -197.45056, y: 181.86069}
       - {x: 203.24263, y: 181.31769}

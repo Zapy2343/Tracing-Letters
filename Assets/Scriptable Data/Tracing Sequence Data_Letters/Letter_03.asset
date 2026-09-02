@@ -15,19 +15,21 @@ MonoBehaviour:
   letter:
     letterNumber: 3
     bubbleCorrectImage: {fileID: 21300000, guid: 9832e5bd83f90f545bc6db0486f48487, type: 3}
+    startSound: {fileID: 8300000, guid: 0ceb4ca2f3aac2b42bc6d13fe2d3a84f, type: 3}
+    finishingSound: {fileID: 8300000, guid: dd7e5656de9964449a43600b22694258, type: 3}
     strokeSteps:
     - stepName: 1
-      allowedAreaMask: {fileID: 21300000, guid: 6f93817a83f022e4a997d5582aee1117, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 69435c0c7bb165d41a7075a05e196a7d, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 2
-      allowedAreaMask: {fileID: 21300000, guid: 7c4ea38c7706c1441b536769eb8e3369, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: 20beaab68220fc64883e3831c939afec, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 3
-      allowedAreaMask: {fileID: 21300000, guid: 4c595d3cf5ade03419ef251a0fd4e17a, type: 3}
+      allowedAreaMask: {fileID: 21300000, guid: f7724ae664df04f44b1ed95b0018979f, type: 3}
       hintPathPoints: []
       hintPathResolution: 0
       completionThresholdOverride: 0
