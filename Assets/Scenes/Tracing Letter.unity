@@ -1267,7 +1267,7 @@ MonoBehaviour:
   linesParent: {fileID: 0}
   autoCompleteOnHighCoverage: 1
   completeOnlyOnMouseRelease: 1
-  completionThreshold: 0.92
+  completionThreshold: 0.8
   hitRadiusRatio: 0.4
   sampleGridResolution: 48
   OnMaskCompleted:
@@ -2003,6 +2003,8 @@ MonoBehaviour:
   tracingLoopClip: {fileID: 0}
   strokeStepCompleteClip: {fileID: 8300000, guid: afd8a1051b5d0864daa65ed82312a031, type: 3}
   letterCompleteClip: {fileID: 8300000, guid: 5ac9eb10778fbca49b031c99d18a7847, type: 3}
+  defaultStartSound: {fileID: 0}
+  defaultFinishingSound: {fileID: 0}
   correctBubbleClip: {fileID: 8300000, guid: 3a0a9ffe16c609f4fb0c7d327c34d654, type: 3}
   wrongBubbleClip: {fileID: 8300000, guid: f5876a08db862004baeb4aeed1881c1d, type: 3}
   sfxVolume: 1
@@ -2450,6 +2452,7 @@ MonoBehaviour:
   dottedLetterObject: {fileID: 1460249309}
   penDrawer: {fileID: 1052640283}
   fxManager: {fileID: 1185087920}
+  soundManager: {fileID: 0}
   designLetterSprites:
   - {fileID: 21300000, guid: 6dbd3b2e059231e42af1ba1e9a4567fb, type: 3}
   - {fileID: 21300000, guid: 16a9c126a7e0d7543b40d95433d6b0ca, type: 3}
