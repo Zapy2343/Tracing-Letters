@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TracingLetterAsset
   letter:
     letterNumber: 24
-    bubbleCorrectImage: {fileID: 0}
+    bubbleCorrectImage: {fileID: 21300000, guid: cfa0014b5d2c6d243b133ace822fe100, type: 3}
     startSound: {fileID: 8300000, guid: 43b9dde2e13750349ab8b0e776264124, type: 3}
     finishingSound: {fileID: 8300000, guid: a2ae4aea901429341aba7dd68438f16b, type: 3}
     strokeSteps:
