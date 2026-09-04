@@ -436,6 +436,8 @@ public class BubblePopBubble : MonoBehaviour
         if (rejectedTapRoutine != null)
         {
             StopCoroutine(rejectedTapRoutine);
+            rectTransform.localScale = Vector3.one;
+            rectTransform.localRotation = Quaternion.identity;
         }
 
         rejectedTapRoutine = StartCoroutine(RejectedTapRoutine());
@@ -573,8 +575,8 @@ public class BubblePopBubble : MonoBehaviour
 
     private IEnumerator RejectedTapRoutine()
     {
-        Vector3 startScale = rectTransform.localScale;
-        Quaternion startRotation = rectTransform.localRotation;
+        rectTransform.localScale = Vector3.one;
+        Quaternion startRotation = Quaternion.identity;
         float elapsed = 0f;
         const float duration = 0.22f;
 
@@ -583,12 +585,12 @@ public class BubblePopBubble : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
             float wobble = Mathf.Sin(t * Mathf.PI * 4f) * (1f - t);
-            rectTransform.localScale = startScale * (1f + Mathf.Sin(t * Mathf.PI) * 0.08f);
+            rectTransform.localScale = Vector3.one;
             rectTransform.localRotation = startRotation * Quaternion.Euler(0f, 0f, wobble * 10f);
             yield return null;
         }
 
-        rectTransform.localScale = startScale;
+        rectTransform.localScale = Vector3.one;
         rectTransform.localRotation = startRotation;
         rejectedTapRoutine = null;
     }
