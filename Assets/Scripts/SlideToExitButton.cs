@@ -27,6 +27,7 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
     [SerializeField] private float handSlideDistance = 260f;
     [SerializeField] private float handHintDuration = 1.1f;
     [SerializeField] private float handHintDelay = 0.15f;
+    [SerializeField] private float handScale = 1.5f;
 
     private CanvasGroup handCanvasGroup;
     private CanvasGroup buttonCanvasGroup;
@@ -215,7 +216,7 @@ public class SlideToExitButton : MonoBehaviour, IPointerDownHandler, IDragHandle
                 float fade = Mathf.Sin(t * Mathf.PI);
 
                 handImage.anchoredPosition = Vector2.LerpUnclamped(from, to, eased);
-                handImage.localScale = Vector3.one * Mathf.Lerp(0.92f, 1.04f, fade);
+                handImage.localScale = Vector3.one * (handScale * Mathf.Lerp(0.92f, 1.04f, fade));
 
                 if (handCanvasGroup != null)
                 {

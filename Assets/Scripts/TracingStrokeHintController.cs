@@ -11,6 +11,7 @@ public class TracingStrokeHintController : MonoBehaviour
     [SerializeField] private float stepDelay = 0.35f;
     [SerializeField] private float hintDuration = 1.25f;
     [SerializeField] private Vector2 hintOffset = new Vector2(35f, -35f);
+    [SerializeField] private float handScale = 1.65f;
 
     private RectTransform hintHand;
     private CanvasGroup hintCanvasGroup;
@@ -23,6 +24,8 @@ public class TracingStrokeHintController : MonoBehaviour
     private readonly List<Vector2> localHintPath = new List<Vector2>();
     private readonly List<Vector2> canvasHintPath = new List<Vector2>();
 
+    private float idleTimer = 0f;
+
     private void Awake()
     {
         ResolveReferences();
@@ -34,34 +37,77 @@ public class TracingStrokeHintController : MonoBehaviour
         ResolveReferences();
         CreateHintHand();
         Subscribe();
-        playedStrokeHints.Clear();
+        idleTimer = 0f;
         UpdateObservedStep();
-        SetHintGate(true);
+        SetHintGate(false);
         ScheduleHint(initialDelay);
     }
 
     private void Update()
     {
-        if (penDrawer == null || penDrawer.IsActivelyDrawing || penDrawer.IsDrawingLockedAfterCompletion)
+        if (penDrawer == null)
         {
+            return;
+        }
+
+        if (penDrawer.IsActivelyDrawing || IsUserAttemptingDraw())
+        {
+            idleTimer = 0f;
+            if (hintRoutine != null)
+            {
+                StopHint();
+            }
+            return;
+        }
+
+        if (penDrawer.IsDrawingLockedAfterCompletion)
+        {
+            idleTimer = 0f;
+            if (hintRoutine != null)
+            {
+                StopHint();
+            }
             return;
         }
 
         if (penDrawer.CurrentLetterNumber != observedLetterNumber || penDrawer.CurrentSequenceStepIndex != observedStepIndex)
         {
-            if (penDrawer.CurrentLetterNumber != observedLetterNumber)
-            {
-                playedStrokeHints.Clear();
-                SetHintGate(true);
-                UpdateObservedStep();
-                ScheduleHint(initialDelay);
-                return;
-            }
-
-            SetHintGate(true);
+            float delay = (penDrawer.CurrentLetterNumber != observedLetterNumber) ? initialDelay : stepDelay;
+            idleTimer = 0f;
             UpdateObservedStep();
-            ScheduleHint(stepDelay);
+            SetHintGate(false);
+            ScheduleHint(delay);
+            return;
         }
+
+        if (hintRoutine == null)
+        {
+            idleTimer += Time.unscaledDeltaTime;
+            if (idleTimer >= stepDelay)
+            {
+                idleTimer = 0f;
+                ScheduleHint(0f);
+            }
+        }
+    }
+
+    private bool IsUserAttemptingDraw()
+    {
+        if (Input.GetMouseButtonDown(0) || Input.GetMouseButton(0))
+        {
+            return true;
+        }
+
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Began || touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void OnDisable()
@@ -106,7 +152,7 @@ public class TracingStrokeHintController : MonoBehaviour
 
     private void ScheduleHint(float delay)
     {
-        if (penDrawer == null || IsCurrentStrokeHintPlayed())
+        if (penDrawer == null)
         {
             return;
         }
@@ -117,16 +163,18 @@ public class TracingStrokeHintController : MonoBehaviour
 
     private IEnumerator HintRoutine(float delay)
     {
-        yield return new WaitForSecondsRealtime(Mathf.Max(0f, delay));
+        if (delay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+        }
 
-        if (!isActiveAndEnabled || penDrawer == null || penDrawer.IsActivelyDrawing || penDrawer.IsDrawingLockedAfterCompletion)
+        if (!isActiveAndEnabled || penDrawer == null || penDrawer.IsActivelyDrawing || penDrawer.IsDrawingLockedAfterCompletion || IsUserAttemptingDraw())
         {
             hintRoutine = null;
             yield break;
         }
 
-        string hintKey = GetCurrentStrokeHintKey();
-        if (playedStrokeHints.Contains(hintKey) || !TryGetActiveStepLocalPath(canvasHintPath))
+        if (!TryGetActiveStepLocalPath(canvasHintPath))
         {
             HideHintHand();
             SetHintGate(false);
@@ -134,7 +182,6 @@ public class TracingStrokeHintController : MonoBehaviour
             yield break;
         }
 
-        playedStrokeHints.Add(hintKey);
         shownLetterNumber = penDrawer.CurrentLetterNumber;
         shownStepIndex = penDrawer.CurrentSequenceStepIndex;
         UpdateObservedStep();
@@ -147,6 +194,7 @@ public class TracingStrokeHintController : MonoBehaviour
         {
             if (penDrawer == null ||
                 penDrawer.IsActivelyDrawing ||
+                IsUserAttemptingDraw() ||
                 penDrawer.CurrentLetterNumber != shownLetterNumber ||
                 penDrawer.CurrentSequenceStepIndex != shownStepIndex)
             {
@@ -159,7 +207,7 @@ public class TracingStrokeHintController : MonoBehaviour
             float fade = Mathf.Sin(t * Mathf.PI);
 
             hintHand.anchoredPosition = GetPointOnPath(canvasHintPath, eased) + hintOffset;
-            hintHand.localScale = Vector3.one * Mathf.Lerp(0.9f, 1.04f, fade);
+            hintHand.localScale = Vector3.one * (handScale * Mathf.Lerp(0.9f, 1.04f, fade));
             hintCanvasGroup.alpha = fade;
             yield return null;
         }
@@ -167,6 +215,7 @@ public class TracingStrokeHintController : MonoBehaviour
         HideHintHand();
         SetHintGate(false);
         hintRoutine = null;
+        idleTimer = 0f;
     }
 
     private void SetHintGate(bool locked)

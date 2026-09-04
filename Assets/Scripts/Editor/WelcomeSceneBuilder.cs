@@ -58,7 +58,7 @@ public static class WelcomeSceneBuilder
         SerializedObject controller = new SerializedObject(welcomeController);
         controller.FindProperty("loadingScreen").objectReferenceValue = loadingScreen.GetComponent<LoadingScreenController>();
         controller.FindProperty("nextSceneName").stringValue = "MainScreen";
-        controller.FindProperty("loadNextSceneAdditively").boolValue = true;
+        controller.FindProperty("loadNextSceneAdditively").boolValue = false;
         controller.FindProperty("unloadWelcomeSceneAfterLoad").boolValue = true;
         controller.FindProperty("fadeDuration").floatValue = 0.45f;
         controller.FindProperty("transitionBackgroundImages").arraySize = 0;

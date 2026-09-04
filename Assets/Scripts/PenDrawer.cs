@@ -689,10 +689,7 @@ public class PenDrawer : MonoBehaviour
             return;
         }
 
-        if (drawingLockedForHint)
-        {
-            return;
-        }
+        // Note: Hints no longer lock drawing. If a hint is active, user drawing cancels the hint instantly.
 
         if (IsMouseJustPressed() && !CanDrawAtScreenPosition(tipScreenPos))
         {

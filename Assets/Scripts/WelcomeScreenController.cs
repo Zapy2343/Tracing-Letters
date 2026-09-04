@@ -10,7 +10,7 @@ public class WelcomeScreenController : MonoBehaviour
     [Header("Scene")]
     [SerializeField] private LoadingScreenController loadingScreen;
     [SerializeField] private string nextSceneName = "MainScreen";
-    [SerializeField] private bool loadNextSceneAdditively = true;
+    [SerializeField] private bool loadNextSceneAdditively = false;
     [SerializeField] private bool unloadWelcomeSceneAfterLoad = true;
 
     [Header("Transition")]
@@ -153,9 +153,9 @@ public class WelcomeScreenController : MonoBehaviour
 
         isContinuing = true;
         Scene welcomeScene = gameObject.scene;
-        CanvasGroup fadeGroup = CreateFadeOverlay(out FadeOverlayCleanup fadeOverlayCleanup);
+        CanvasGroup fadeGroup = CreateFadeOverlay(out FadeOverlayCleanup fadeOverlayCleanup, out RectTransform panelRect);
 
-        yield return Fade(fadeGroup, 0f, 1f);
+        yield return FadeAndScale(fadeGroup, panelRect, 0f, 1f, Vector3.one * 0.2f, Vector3.one);
 
         if (loadNextSceneAdditively)
         {
@@ -186,7 +186,7 @@ public class WelcomeScreenController : MonoBehaviour
         fadeOverlayCleanup.LoadSingleSceneThenFadeOut(nextSceneName);
     }
 
-    private CanvasGroup CreateFadeOverlay(out FadeOverlayCleanup fadeOverlayCleanup)
+    private CanvasGroup CreateFadeOverlay(out FadeOverlayCleanup fadeOverlayCleanup, out RectTransform panelRect)
     {
         GameObject fadeRoot = new GameObject("Welcome Scene Fade");
         DontDestroyOnLoad(fadeRoot);
@@ -212,11 +212,12 @@ public class WelcomeScreenController : MonoBehaviour
         GameObject panelObject = new GameObject("Fade Background", typeof(RectTransform), typeof(Image));
         panelObject.transform.SetParent(canvasObject.transform, false);
 
-        RectTransform panelRect = panelObject.GetComponent<RectTransform>();
+        panelRect = panelObject.GetComponent<RectTransform>();
         panelRect.anchorMin = Vector2.zero;
         panelRect.anchorMax = Vector2.one;
         panelRect.offsetMin = Vector2.zero;
         panelRect.offsetMax = Vector2.zero;
+        panelRect.localScale = Vector3.one * 0.2f;
 
         Image panel = panelObject.GetComponent<Image>();
         Sprite transitionImage = PickTransitionBackgroundImage();
@@ -225,7 +226,7 @@ public class WelcomeScreenController : MonoBehaviour
         panel.preserveAspect = transitionImage != null;
         panel.raycastTarget = false;
 
-        fadeOverlayCleanup.Initialize(canvasGroup, fadeDuration);
+        fadeOverlayCleanup.Initialize(canvasGroup, panelRect, fadeDuration);
         return canvasGroup;
     }
 
@@ -249,7 +250,7 @@ public class WelcomeScreenController : MonoBehaviour
         return transitionFallbackColors[UnityEngine.Random.Range(0, transitionFallbackColors.Length)];
     }
 
-    private IEnumerator Fade(CanvasGroup canvasGroup, float fromAlpha, float toAlpha)
+    private IEnumerator FadeAndScale(CanvasGroup canvasGroup, RectTransform panelRect, float fromAlpha, float toAlpha, Vector3 fromScale, Vector3 toScale)
     {
         if (canvasGroup == null)
         {
@@ -259,6 +260,10 @@ public class WelcomeScreenController : MonoBehaviour
         float elapsed = 0f;
         float safeDuration = Mathf.Max(0.01f, fadeDuration);
         canvasGroup.alpha = fromAlpha;
+        if (panelRect != null)
+        {
+            panelRect.localScale = fromScale;
+        }
 
         while (elapsed < safeDuration)
         {
@@ -266,10 +271,18 @@ public class WelcomeScreenController : MonoBehaviour
             float t = Mathf.Clamp01(elapsed / safeDuration);
             float eased = t * t * (3f - 2f * t);
             canvasGroup.alpha = Mathf.Lerp(fromAlpha, toAlpha, eased);
+            if (panelRect != null)
+            {
+                panelRect.localScale = Vector3.Lerp(fromScale, toScale, eased);
+            }
             yield return null;
         }
 
         canvasGroup.alpha = toAlpha;
+        if (panelRect != null)
+        {
+            panelRect.localScale = toScale;
+        }
     }
 
     private static void DisableAudioListeners(Scene scene)
@@ -293,11 +306,13 @@ public class WelcomeScreenController : MonoBehaviour
     private sealed class FadeOverlayCleanup : MonoBehaviour
     {
         private CanvasGroup canvasGroup;
+        private RectTransform panelRect;
         private float duration;
 
-        public void Initialize(CanvasGroup targetCanvasGroup, float fadeDuration)
+        public void Initialize(CanvasGroup targetCanvasGroup, RectTransform targetPanelRect, float fadeDuration)
         {
             canvasGroup = targetCanvasGroup;
+            panelRect = targetPanelRect;
             duration = fadeDuration;
         }
 
@@ -322,7 +337,7 @@ public class WelcomeScreenController : MonoBehaviour
                 }
             }
 
-            yield return Fade(1f, 0f);
+            yield return FadeAndScale(1f, 0f, Vector3.one, Vector3.one * 1.15f);
             Destroy(gameObject);
         }
 
@@ -334,11 +349,13 @@ public class WelcomeScreenController : MonoBehaviour
                 yield return null;
             }
 
-            yield return Fade(1f, 0f);
+            MainScreenAdUiController.RefreshCurrentMainScreen();
+
+            yield return FadeAndScale(1f, 0f, Vector3.one, Vector3.one * 1.15f);
             Destroy(gameObject);
         }
 
-        private IEnumerator Fade(float fromAlpha, float toAlpha)
+        private IEnumerator FadeAndScale(float fromAlpha, float toAlpha, Vector3 fromScale, Vector3 toScale)
         {
             if (canvasGroup == null)
             {
@@ -348,6 +365,10 @@ public class WelcomeScreenController : MonoBehaviour
             float elapsed = 0f;
             float safeDuration = Mathf.Max(0.01f, duration);
             canvasGroup.alpha = fromAlpha;
+            if (panelRect != null)
+            {
+                panelRect.localScale = fromScale;
+            }
 
             while (elapsed < safeDuration)
             {
@@ -355,10 +376,18 @@ public class WelcomeScreenController : MonoBehaviour
                 float t = Mathf.Clamp01(elapsed / safeDuration);
                 float eased = t * t * (3f - 2f * t);
                 canvasGroup.alpha = Mathf.Lerp(fromAlpha, toAlpha, eased);
+                if (panelRect != null)
+                {
+                    panelRect.localScale = Vector3.Lerp(fromScale, toScale, eased);
+                }
                 yield return null;
             }
 
             canvasGroup.alpha = toAlpha;
+            if (panelRect != null)
+            {
+                panelRect.localScale = toScale;
+            }
         }
     }
 }

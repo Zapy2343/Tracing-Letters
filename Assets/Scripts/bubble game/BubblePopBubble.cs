@@ -79,12 +79,14 @@ public class BubblePopBubble : MonoBehaviour
     {
         ResolveContentReferences();
 
-        float inset = (1f - Mathf.Clamp01(fillPercent)) * 0.5f;
+        float effectivePercent = Mathf.Clamp(fillPercent, 0.2f, 0.70f);
+        float inset = (1f - effectivePercent) * 0.5f;
         Vector2 min = new Vector2(inset, inset);
         Vector2 max = new Vector2(1f - inset, 1f - inset);
 
         if (contentImage != null)
         {
+            contentImage.preserveAspect = true;
             RectTransform imgRect = contentImage.GetComponent<RectTransform>();
             if (imgRect != null)
             {
@@ -93,6 +95,7 @@ public class BubblePopBubble : MonoBehaviour
                 imgRect.offsetMin = Vector2.zero;
                 imgRect.offsetMax = Vector2.zero;
                 imgRect.anchoredPosition = Vector2.zero;
+                imgRect.localScale = Vector3.one;
             }
         }
 
@@ -106,6 +109,7 @@ public class BubblePopBubble : MonoBehaviour
                 txtRect.offsetMin = Vector2.zero;
                 txtRect.offsetMax = Vector2.zero;
                 txtRect.anchoredPosition = Vector2.zero;
+                txtRect.localScale = Vector3.one;
             }
         }
     }
@@ -360,8 +364,8 @@ public class BubblePopBubble : MonoBehaviour
             contentObject.transform.SetParent(transform, false);
 
             RectTransform contentRect = contentObject.GetComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0.08f, 0.08f);
-            contentRect.anchorMax = new Vector2(0.92f, 0.92f);
+            contentRect.anchorMin = new Vector2(0.15f, 0.15f);
+            contentRect.anchorMax = new Vector2(0.85f, 0.85f);
             contentRect.pivot = new Vector2(0.5f, 0.5f);
             contentRect.offsetMin = Vector2.zero;
             contentRect.offsetMax = Vector2.zero;

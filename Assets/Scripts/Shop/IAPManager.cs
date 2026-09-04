@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Purchasing;
 
 #pragma warning disable CS0618 // Suppresses obsolete warning while using Unity IAP transitional API
@@ -22,6 +22,12 @@ public class IAPManager : MonoBehaviour, IStoreListener
     {
         if (Instance != null && Instance != this)
         {
+#if UNITY_EDITOR
+            if (UnityEditor.Selection.activeGameObject == gameObject)
+            {
+                UnityEditor.Selection.activeGameObject = null;
+            }
+#endif
             Destroy(gameObject);
             return;
         }
@@ -63,7 +69,6 @@ public class IAPManager : MonoBehaviour, IStoreListener
             Debug.LogError($"[IAPManager] Product unavailable: {targetId}");
         }
     }
-
     // Restore 
     public void RestorePurchases()
     {

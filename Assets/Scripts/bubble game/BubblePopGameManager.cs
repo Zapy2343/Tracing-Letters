@@ -53,7 +53,7 @@ public class BubblePopGameManager : MonoBehaviour
     [SerializeField] private float spawnSpacingCheckHeight = 260f;
 
     [Range(0.1f, 0.95f)]
-    [SerializeField] private float contentFillPercent = 0.48f;
+    [SerializeField] private float contentFillPercent = 0.70f;
 
     [Header("Bubble Colors")]
     [SerializeField] private bool useRandomBubbleColors = true;
@@ -87,6 +87,7 @@ public class BubblePopGameManager : MonoBehaviour
     [Header("Current Level Display")]
     [SerializeField] private TMP_Text currentLevelText;
     [SerializeField] private Image currentLevelImage;
+    [SerializeField] private TMP_Text remainingPopsText;
     [SerializeField] private float currentLevelTopOffset = 150f;
     [SerializeField] private Vector2 currentLevelImageSize = new Vector2(150f, 150f);
     [field: SerializeField] public BubblePopFXManager bubblePopFXManager { get; private set; }
@@ -101,9 +102,9 @@ public class BubblePopGameManager : MonoBehaviour
     public int Score => score;
     public bool IsSpawning => spawnRoutine != null;
     public int ContentSpriteCount => contentSprites != null ? contentSprites.Count : 0;
-    public int LevelCount => ContentSpriteCount;
+    public int LevelCount => GetProviderLevelCount() > 0 ? GetProviderLevelCount() : ContentSpriteCount;
     public int CurrentLevelIndex => Mathf.Clamp(currentLevelIndex, 0, Mathf.Max(0, LevelCount - 1));
-    public Sprite CurrentLevelSprite => GetContentSpriteForLevelIndex(CurrentLevelIndex);
+    public Sprite CurrentLevelSprite => GetSelectedLevelProviderSprite(CurrentLevelIndex) ?? GetContentSpriteForLevelIndex(CurrentLevelIndex);
 
     private void Awake()
     {
@@ -163,6 +164,7 @@ public class BubblePopGameManager : MonoBehaviour
     {
         score = 0;
         onScoreChanged?.Invoke(score);
+        RefreshRemainingPopsDisplay();
     }
 
     public void BeginLevel(int levelIndex)
@@ -391,8 +393,8 @@ public class BubblePopGameManager : MonoBehaviour
         contentObject.transform.SetParent(bubbleObject.transform, false);
 
         RectTransform contentRect = contentObject.GetComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0.08f, 0.08f);
-        contentRect.anchorMax = new Vector2(0.92f, 0.92f);
+        contentRect.anchorMin = new Vector2(0.15f, 0.15f);
+        contentRect.anchorMax = new Vector2(0.85f, 0.85f);
         contentRect.pivot = new Vector2(0.5f, 0.5f);
         contentRect.offsetMin = Vector2.zero;
         contentRect.offsetMax = Vector2.zero;
@@ -467,7 +469,12 @@ public class BubblePopGameManager : MonoBehaviour
 
     private Sprite PickBubbleSprite(out bool isCorrectBubble)
     {
-        Sprite correctSprite = CurrentLevelSprite;
+        Sprite correctSprite = GetContentSpriteForLevelIndex(CurrentLevelIndex);
+        if (correctSprite == null)
+        {
+            correctSprite = CurrentLevelSprite;
+        }
+
         isCorrectBubble = correctSprite != null;
 
         if (correctSprite == null)
@@ -528,6 +535,42 @@ public class BubblePopGameManager : MonoBehaviour
         return contentSprites[safeIndex];
     }
 
+    public Sprite GetSelectedLevelProviderSprite(int levelIndex)
+    {
+        BubblePopSelectedLevelImageProvider provider = GetComponent<BubblePopSelectedLevelImageProvider>();
+        if (provider == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            provider = FindFirstObjectByType<BubblePopSelectedLevelImageProvider>();
+#else
+            provider = FindObjectOfType<BubblePopSelectedLevelImageProvider>();
+#endif
+        }
+
+        if (provider != null && provider.LevelImages != null && provider.LevelImages.Count > 0)
+        {
+            int safeIndex = Mathf.Clamp(levelIndex, 0, provider.LevelImages.Count - 1);
+            return provider.LevelImages[safeIndex];
+        }
+
+        return null;
+    }
+
+    private int GetProviderLevelCount()
+    {
+        BubblePopSelectedLevelImageProvider provider = GetComponent<BubblePopSelectedLevelImageProvider>();
+        if (provider == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            provider = FindFirstObjectByType<BubblePopSelectedLevelImageProvider>();
+#else
+            provider = FindObjectOfType<BubblePopSelectedLevelImageProvider>();
+#endif
+        }
+
+        return (provider != null && provider.LevelImages != null) ? provider.LevelImages.Count : 0;
+    }
+
     private void RefreshCurrentLevelDisplay()
     {
         ResolveReferences();
@@ -541,6 +584,8 @@ public class BubblePopGameManager : MonoBehaviour
             currentLevelImage.enabled = sprite != null;
             currentLevelImage.gameObject.SetActive(sprite != null);
             currentLevelImage.preserveAspect = true;
+            currentLevelImage.color = Color.black;
+            currentLevelImage.transform.localScale = new Vector3(1.5f, 1.5f, 1.5f);
         }
 
         if (currentLevelText != null)
@@ -548,6 +593,8 @@ public class BubblePopGameManager : MonoBehaviour
             currentLevelText.enabled = false;
             currentLevelText.gameObject.SetActive(false);
         }
+
+        RefreshRemainingPopsDisplay();
     }
 
     private void EnsureCurrentLevelDisplay()
@@ -571,6 +618,96 @@ public class BubblePopGameManager : MonoBehaviour
         currentLevelImage = displayObject.GetComponent<Image>();
         currentLevelImage.preserveAspect = true;
         currentLevelImage.raycastTarget = false;
+        currentLevelImage.color = Color.black;
+        currentLevelImage.transform.localScale = new Vector3(1.5f, 1.5f, 1.5f);
+    }
+
+    private void RefreshRemainingPopsDisplay()
+    {
+        EnsureRemainingPopsDisplay();
+
+        if (remainingPopsText != null)
+        {
+            int targetPops = 10;
+            BubblePopGameCompletion completion = GetComponent<BubblePopGameCompletion>();
+            if (completion == null)
+            {
+#if UNITY_2023_1_OR_NEWER
+                completion = FindFirstObjectByType<BubblePopGameCompletion>();
+#else
+                completion = FindObjectOfType<BubblePopGameCompletion>();
+#endif
+            }
+
+            if (completion != null)
+            {
+                targetPops = completion.TargetScoreToComplete;
+            }
+
+            int currentPops = Mathf.Clamp(score, 0, targetPops);
+            remainingPopsText.text = $"{currentPops} / {targetPops}";
+
+            RectTransform rect = remainingPopsText.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchoredPosition = new Vector2(130f, 80f);
+            }
+
+            Material dropShadowMaterial = Resources.Load<Material>("Fonts & Materials/LiberationSans SDF - Drop Shadow");
+#if UNITY_EDITOR
+            if (dropShadowMaterial == null)
+            {
+                dropShadowMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(
+                    "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Drop Shadow.mat");
+            }
+#endif
+            if (dropShadowMaterial != null && remainingPopsText.fontSharedMaterial != dropShadowMaterial)
+            {
+                remainingPopsText.fontSharedMaterial = dropShadowMaterial;
+            }
+        }
+    }
+
+    private void EnsureRemainingPopsDisplay()
+    {
+        if (remainingPopsText != null || targetCanvas == null)
+        {
+            return;
+        }
+
+        GameObject displayObject = new GameObject("Remaining Pops Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        displayObject.transform.SetParent(targetCanvas.transform, false);
+
+        RectTransform rect = displayObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 0f);
+        rect.anchorMax = new Vector2(0f, 0f);
+        rect.pivot = new Vector2(0f, 0f);
+        rect.anchoredPosition = new Vector2(130f, 80f);
+        rect.sizeDelta = new Vector2(500f, 150f);
+        rect.SetAsLastSibling();
+
+        remainingPopsText = displayObject.GetComponent<TextMeshProUGUI>();
+        remainingPopsText.fontSize = 100f;
+        remainingPopsText.enableAutoSizing = true;
+        remainingPopsText.fontSizeMin = 18f;
+        remainingPopsText.fontSizeMax = 100f;
+        remainingPopsText.fontStyle = FontStyles.Bold;
+        remainingPopsText.alignment = TextAlignmentOptions.Left;
+        remainingPopsText.color = Color.black;
+        remainingPopsText.raycastTarget = false;
+
+        Material dropShadowMaterial = Resources.Load<Material>("Fonts & Materials/LiberationSans SDF - Drop Shadow");
+#if UNITY_EDITOR
+        if (dropShadowMaterial == null)
+        {
+            dropShadowMaterial = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(
+                "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Drop Shadow.mat");
+        }
+#endif
+        if (dropShadowMaterial != null)
+        {
+            remainingPopsText.fontSharedMaterial = dropShadowMaterial;
+        }
     }
 
     private void HandleWrongBubbleTapped(BubblePopBubble bubble)
@@ -663,22 +800,8 @@ public class BubblePopGameManager : MonoBehaviour
 
     private void LoadContentSpritesFromProviderIfEmpty()
     {
-        if (contentSprites != null && contentSprites.Count > 0) return;
-
-        BubblePopSelectedLevelImageProvider provider = GetComponent<BubblePopSelectedLevelImageProvider>();
-        if (provider == null)
-        {
-#if UNITY_2023_1_OR_NEWER
-            provider = FindFirstObjectByType<BubblePopSelectedLevelImageProvider>();
-#else
-            provider = FindObjectOfType<BubblePopSelectedLevelImageProvider>();
-#endif
-        }
-
-        if (provider != null && provider.LevelImages != null && provider.LevelImages.Count > 0)
-        {
-            SetContentSprites(provider.LevelImages);
-        }
+        // Note: Do not load or swap contentSprites from provider
+        return;
     }
 
     private void LoadContentSpritesIfEmpty()
@@ -770,6 +893,7 @@ public class BubblePopGameManager : MonoBehaviour
 
         onBubblePopped?.Invoke(bubble);
         onScoreChanged?.Invoke(score);
+        RefreshRemainingPopsDisplay();
     }
 
     private void PlaySfx(AudioClip clip)

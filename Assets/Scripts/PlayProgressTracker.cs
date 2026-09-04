@@ -46,6 +46,12 @@ public class PlayProgressTracker : MonoBehaviour
     {
         if (instance != null && instance != this)
         {
+#if UNITY_EDITOR
+            if (UnityEditor.Selection.activeGameObject == gameObject)
+            {
+                UnityEditor.Selection.activeGameObject = null;
+            }
+#endif
             Destroy(gameObject);
             return;
         }

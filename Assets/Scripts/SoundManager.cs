@@ -51,6 +51,12 @@ public class SoundManager : MonoBehaviour
         // Singleton pattern
         if (Instance != null && Instance != this)
         {
+#if UNITY_EDITOR
+            if (UnityEditor.Selection.activeGameObject == gameObject)
+            {
+                UnityEditor.Selection.activeGameObject = null;
+            }
+#endif
             Destroy(gameObject);
             return;
         }

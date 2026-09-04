@@ -14,13 +14,29 @@ public static class UnityEditorSelectionRecovery
     static UnityEditorSelectionRecovery()
     {
         EditorApplication.delayCall += ClearSelectionOnceAfterReload;
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        EditorApplication.hierarchyChanged += ClearOnlyIfSelectionContainsNull;
+        Selection.selectionChanged += ClearOnlyIfSelectionContainsNull;
     }
 
     [MenuItem("Tools/Recovery/Clear Broken Inspector Selection")]
     public static void ClearBrokenInspectorSelection()
     {
         Selection.objects = Array.Empty<UnityEngine.Object>();
-        ActiveEditorTracker.sharedTracker.ForceRebuild();
+        if (ActiveEditorTracker.sharedTracker != null)
+        {
+            ActiveEditorTracker.sharedTracker.ForceRebuild();
+        }
+    }
+
+    private static void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        ClearOnlyIfSelectionContainsNull();
+
+        if (state == PlayModeStateChange.ExitingEditMode || state == PlayModeStateChange.EnteredPlayMode)
+        {
+            ClearOnlyIfSelectionContainsNull();
+        }
     }
 
     private static void ClearSelectionOnceAfterReload()
@@ -35,22 +51,50 @@ public static class UnityEditorSelectionRecovery
         ClearBrokenInspectorSelection();
     }
 
-    private static void ClearOnlyIfSelectionContainsNull()
+    public static void ClearOnlyIfSelectionContainsNull()
     {
         UnityEngine.Object[] selectedObjects = Selection.objects;
-        if (selectedObjects == null)
+        if (selectedObjects == null || selectedObjects.Length == 0)
         {
-            ClearBrokenInspectorSelection();
             return;
         }
 
+        bool hasNull = false;
         for (int i = 0; i < selectedObjects.Length; i++)
         {
-            if (selectedObjects[i] == null)
+            if (selectedObjects[i] == null || !selectedObjects[i])
             {
-                ClearBrokenInspectorSelection();
-                return;
+                hasNull = true;
+                break;
             }
+        }
+
+        if (hasNull)
+        {
+            Selection.objects = Array.Empty<UnityEngine.Object>();
+            if (ActiveEditorTracker.sharedTracker != null)
+            {
+                ActiveEditorTracker.sharedTracker.ForceRebuild();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Safely clears selection of a GameObject before destroying it in duplicate singleton Awake methods.
+    /// </summary>
+    public static void SafeDeselectBeforeDestroy(GameObject go)
+    {
+        if (go == null) return;
+
+        if (Selection.activeGameObject == go)
+        {
+            Selection.activeGameObject = null;
+        }
+
+        UnityEngine.Object[] selected = Selection.objects;
+        if (selected != null && Array.IndexOf(selected, go) >= 0)
+        {
+            ClearBrokenInspectorSelection();
         }
     }
 }

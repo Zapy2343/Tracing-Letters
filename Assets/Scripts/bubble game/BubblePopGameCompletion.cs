@@ -11,6 +11,8 @@ public class BubblePopGameCompletion : MonoBehaviour
     [SerializeField] private float completionPauseSeconds = 1.35f;
     [SerializeField] private bool proceedToNextLevel = true;
 
+    public int TargetScoreToComplete => targetScoreToComplete;
+
     [Header("Completion Presentation")]
     [SerializeField] private Canvas targetCanvas;
     [SerializeField] private AudioSource sfxSource;

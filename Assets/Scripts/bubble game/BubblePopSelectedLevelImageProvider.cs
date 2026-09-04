@@ -40,11 +40,7 @@ public class BubblePopSelectedLevelImageProvider : MonoBehaviour
             return;
         }
 
-        if (levelImages != null && levelImages.Count > 0)
-        {
-            gameManager.SetContentSprites(levelImages);
-        }
-
+        // Note: Do not swap or override gameManager's contentSprites from levelImages
         gameManager.BeginLevel(BubblePopLevelMenu.GetSelectedLevelIndex());
     }
 }

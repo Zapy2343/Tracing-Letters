@@ -703,8 +703,8 @@ public class TracingBubbleChoiceGame : MonoBehaviour
         contentObject.transform.SetParent(bubbleObject.transform, false);
 
         RectTransform contentRect = contentObject.GetComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0.5f, 0.5f);
-        contentRect.anchorMax = new Vector2(0.5f, 0.5f);
+        contentRect.anchorMin = new Vector2(0.15f, 0.15f);
+        contentRect.anchorMax = new Vector2(0.85f, 0.85f);
         contentRect.pivot = new Vector2(0.5f, 0.5f);
         contentRect.sizeDelta = Vector2.zero;
 
