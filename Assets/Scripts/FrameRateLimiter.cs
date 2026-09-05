@@ -52,5 +52,6 @@ public class FrameRateLimiter : MonoBehaviour
     {
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = TargetFrameRate;
+        Screen.sleepTimeout = SleepTimeout.NeverSleep;
     }
 }
