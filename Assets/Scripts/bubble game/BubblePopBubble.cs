@@ -56,9 +56,17 @@ public class BubblePopBubble : MonoBehaviour
     private float wiggleFrequency;
     private float despawnPadding;
     private float wiggleSeed;
+    private float baseX;
+    private bool hasBaseX;
     private bool popped;
 
     public bool IsPopped => popped;
+
+    public void SetBaseX(float x)
+    {
+        baseX = x;
+        hasBaseX = true;
+    }
 
     public void BindReferences(Image shellImage, Image insideImage, Button clickButton)
     {
@@ -164,9 +172,20 @@ public class BubblePopBubble : MonoBehaviour
     {
         if (popped || playArea == null) return;
 
+        if (rectTransform == null)
+        {
+            rectTransform = GetComponent<RectTransform>();
+        }
+
+        if (!hasBaseX && rectTransform != null)
+        {
+            baseX = rectTransform.anchoredPosition.x;
+            hasBaseX = true;
+        }
+
         Vector2 position = rectTransform.anchoredPosition;
         position.y += riseSpeed * Time.deltaTime;
-        position.x += Mathf.Sin((Time.time + wiggleSeed) * wiggleFrequency) * wiggleAmplitude * Time.deltaTime;
+        position.x = baseX + Mathf.Sin((Time.time + wiggleSeed) * wiggleFrequency) * wiggleAmplitude;
         rectTransform.anchoredPosition = position;
 
         float topLimit = playArea.rect.yMax + rectTransform.rect.height + despawnPadding;
@@ -281,6 +300,7 @@ public class BubblePopBubble : MonoBehaviour
         rejectedPopCallback = onRejectedPop;
         wiggleSeed = UnityEngine.Random.Range(0f, 100f);
         popped = false;
+        hasBaseX = false;
 
         if (bubbleImage != null)
         {
