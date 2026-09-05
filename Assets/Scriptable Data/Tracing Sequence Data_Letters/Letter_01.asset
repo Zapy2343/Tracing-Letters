@@ -21,8 +21,16 @@ MonoBehaviour:
     - stepName: 1
       allowedAreaMask: {fileID: 21300000, guid: 8cb637b6f60331e42a905de72da85fe8, type: 3}
       hintPathPoints:
-      - {x: 9.0929, y: 174.92589}
-      - {x: 9.141319, y: -156.38708}
+      - {x: 9.000024, y: 170.15384}
+      - {x: 8.98757, y: 129.89903}
+      - {x: 8.995846, y: 89.64216}
+      - {x: 9.000024, y: 49.38524}
+      - {x: 9.325249, y: 9.134127}
+      - {x: 9.453641, y: -31.121305}
+      - {x: 9.5865345, y: -71.37725}
+      - {x: 9.3421545, y: -111.63252}
+      - {x: 9.56045, y: -151.88713}
+      - {x: 10.129067, y: -192.12901}
       hintPathResolution: 18
       completionThresholdOverride: 0.8
     - stepName: 2
@@ -43,7 +51,7 @@ MonoBehaviour:
     - stepName: 3
       allowedAreaMask: {fileID: 21300000, guid: 54262f9c1b9cdf242b7a72592f61e464, type: 3}
       hintPathPoints:
-      - {x: -197.45056, y: 181.86069}
-      - {x: 203.24263, y: 181.31769}
+      - {x: -244.36844, y: 143.5784}
+      - {x: 231.17908, y: 147.29727}
       hintPathResolution: 18
       completionThresholdOverride: 0.8

@@ -20,16 +20,28 @@ MonoBehaviour:
     strokeSteps:
     - stepName: 1
       allowedAreaMask: {fileID: 21300000, guid: 26b60362fb0d1ed4ea2cb31520a85dc1, type: 3}
-      hintPathPoints: []
+      hintPathPoints:
+      - {x: -221.01463, y: 87.20127}
+      - {x: -174.40228, y: 171.44882}
+      - {x: -59.966988, y: 156.9621}
+      - {x: -60.07192, y: -143.39757}
+      - {x: -174.40244, y: -164.71344}
+      - {x: -197.65607, y: -73.6366}
+      - {x: -139.52188, y: -46.507324}
+      - {x: 116.26846, y: -40.6939}
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 2
       allowedAreaMask: {fileID: 21300000, guid: b5121cf95e370a34b87fcd3b88ad4ef5, type: 3}
-      hintPathPoints: []
+      hintPathPoints:
+      - {x: 112.287796, y: 160.83792}
+      - {x: 114.3306, y: -254.86841}
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 3
       allowedAreaMask: {fileID: 21300000, guid: 8a725be44d849da408ee2ffdbad49bf2, type: 3}
-      hintPathPoints: []
+      hintPathPoints:
+      - {x: 25.086575, y: 125.95735}
+      - {x: 253.85254, y: 132.69267}
       hintPathResolution: 0
       completionThresholdOverride: 0

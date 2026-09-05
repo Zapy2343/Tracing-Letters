@@ -20,21 +20,32 @@ MonoBehaviour:
     strokeSteps:
     - stepName: 1
       allowedAreaMask: {fileID: 21300000, guid: 5d6794c2b45cfdf4486c03f66b27fd1a, type: 3}
-      hintPathPoints: []
+      hintPathPoints:
+      - {x: 100.66101, y: 207.34518}
+      - {x: 106.57933, y: -262.61963}
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 2
       allowedAreaMask: {fileID: 21300000, guid: 0bdee446dc9c052468fffe4922f18f60, type: 3}
-      hintPathPoints: []
+      hintPathPoints:
+      - {x: 69.65612, y: 32.942852}
+      - {x: -133.7084, y: 26.11345}
+      - {x: -151.0438, y: -131.7707}
+      - {x: -44.569397, y: -168.58904}
+      - {x: 89.13917, y: -129.83295}
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 3
       allowedAreaMask: {fileID: 21300000, guid: 37340334286ffcc46bbcee47bbe5b477, type: 3}
-      hintPathPoints: []
+      hintPathPoints:
+      - {x: -96.995056, y: 54.25865}
+      - {x: 48.445286, y: -146.3513}
       hintPathResolution: 0
       completionThresholdOverride: 0
     - stepName: 4
       allowedAreaMask: {fileID: 21300000, guid: 85701a889a72b914ebb43b6d7bb6d070, type: 3}
-      hintPathPoints: []
+      hintPathPoints:
+      - {x: -252.01956, y: 153.08665}
+      - {x: 253.85254, y: 159.82198}
       hintPathResolution: 0
       completionThresholdOverride: 0

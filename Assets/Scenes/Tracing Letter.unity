@@ -1286,7 +1286,7 @@ MonoBehaviour:
   isCompleted: 0
   clearOnDoubleRightClick: 1
   doubleClickThreshold: 0.3
-  saveHandHintPathFromNextStroke: 0
+  saveHandHintPathFromNextStroke: 1
   recordedHintPathMaxPoints: 10
   recordedHintPathMinPointDistance: 8
   drawingLockedAfterCompletion: 0
@@ -2484,6 +2484,7 @@ MonoBehaviour:
   stepDelay: 0.35
   hintDuration: 1.25
   hintOffset: {x: 35, y: -35}
+  handScale: 1.65
 --- !u!1 &1428069222
 GameObject:
   m_ObjectHideFlags: 0
@@ -2927,6 +2928,7 @@ MonoBehaviour:
   handSlideDistance: 260
   handHintDuration: 1.1
   handHintDelay: 0.15
+  handScale: 1.5
 --- !u!1 &2117393342
 GameObject:
   m_ObjectHideFlags: 0
